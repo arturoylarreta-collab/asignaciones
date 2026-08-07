@@ -17,7 +17,7 @@ st.set_page_config(
     page_title='Tablero Logístico - TV 43"',
     page_icon='🚚',
     layout='wide',
-    initial_sidebar_state='expanded',  # Ahora la barra lateral inicia ABIERTA
+    initial_sidebar_state='expanded',
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
@@ -32,7 +32,7 @@ MOTORIZADOS_DISPONIBLES = [
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE (AUTO-RESETEO SI HAY DATOS VIEJOS)
+# BASE DE DATOS SQLITE (AUTO-RESETEO SEGURO)
 # ---------------------------------------------------------
 def get_db_connection():
   conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -44,7 +44,17 @@ def init_db(force_reset=False):
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  if force_reset:
+  # Verificar si la tabla existe o si tiene datos antiguos de prueba
+  try:
+    cursor.execute(
+        "SELECT COUNT(*) FROM maquinas WHERE nombre LIKE '%Embaladora%'"
+    )
+    hay_datos_viejos = cursor.fetchone()[0] > 0
+  except sqlite3.OperationalError:
+    hay_datos_viejos = False
+
+  # Si se detectan datos de prueba viejos o cambio de estructura, se reinicia la tabla limpia
+  if hay_datos_viejos or force_reset:
     cursor.execute('DROP TABLE IF EXISTS maquinas')
 
   cursor.execute("""
@@ -62,65 +72,58 @@ def init_db(force_reset=False):
         )
     """)
 
-  # Si detecta los datos de prueba viejos ("Embaladora"), los borra y carga la lista real de 36
-  cursor.execute(
-      "SELECT COUNT(*) FROM maquinas WHERE nombre LIKE '%Embaladora%'"
-  )
-  hay_datos_viejos = cursor.fetchone()[0] > 0
-
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   total_registros = cursor.fetchone()[0]
 
-  if hay_datos_viejos or total_registros == 0:
-    cursor.execute('DELETE FROM maquinas')
-
+  if total_registros == 0:
     sample_locations = [
-        ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0),
-        ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0),
-        ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0),
-        ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0),
-        ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0),
-        ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0),
-        ('UCAB MEZ', 'Freduard', 0, 1, 0, 0, 0, 0),
-        ('UCAB M3', 'Freduard', 0, 0, 1, 0, 0, 0),
-        ('USM', 'Alejandro', 1, 0, 1, 0, 1, 0),
-        ('MONTAÑA', 'Alejandro', 0, 0, 0, 1, 0, 0),
-        ('EURO S1', 'Gustavo', 1, 0, 0, 1, 0, 0),
-        ('EURO S2', 'Gustavo', 0, 1, 0, 0, 1, 0),
-        ('TAMACO', 'Eduard', 0, 1, 0, 0, 0, 0),
-        ('TAMACA', 'Eduard', 0, 1, 0, 0, 0, 0),
-        ('HUMBOLDT', 'Alejandro', 1, 0, 0, 0, 0, 0),
-        ('GOLD DATA', 'Gustavo', 0, 0, 1, 0, 0, 0),
-        ('PAGO DIRECTO', 'Gustavo', 1, 0, 1, 0, 1, 0),
-        ('CUBITT', 'Alejandro', 0, 1, 0, 1, 0, 0),
-        ('KURIOS', 'Eduard', 0, 0, 0, 0, 1, 0),
-        ('CASHEA P9', 'Freduard', 1, 0, 1, 0, 1, 0),
-        ('CASHEA P18', 'Freduard', 1, 0, 1, 0, 1, 0),
-        ('DICAM', 'Alejandro', 0, 1, 0, 0, 0, 0),
-        ('FISA', 'Gustavo', 0, 0, 1, 0, 0, 0),
-        ('DOMESA', 'Eduard', 1, 1, 1, 1, 1, 0),
-        ('TU GRUERO', 'Alejandro', 0, 0, 0, 1, 0, 0),
-        ('UNION RADIO', 'Gustavo', 1, 0, 0, 1, 0, 0),
-        ('FORUM P7', 'Freduard', 0, 1, 0, 0, 1, 0),
-        ('FORUM P15', 'Freduard', 0, 1, 0, 0, 1, 0),
-        ('BANGENTE', 'Alejandro', 1, 0, 1, 0, 0, 0),
-        ('PROVINCIAL', 'Gustavo', 1, 0, 0, 0, 0, 0),
-        ('TRANRED', 'Eduard', 0, 0, 1, 0, 0, 0),
-        ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0),
-        ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0),
-        ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0),
-        ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0),
-        ('ASIMETRIX', 'Freduard', 1, 0, 0, 0, 0, 0),
+        ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
+        ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
+        ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0, ''),
+        ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0, ''),
+        ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
+        ('UCAB MEZ', 'Freduard', 0, 1, 0, 0, 0, 0, ''),
+        ('UCAB M3', 'Freduard', 0, 0, 1, 0, 0, 0, ''),
+        ('USM', 'Alejandro', 1, 0, 1, 0, 1, 0, ''),
+        ('MONTAÑA', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
+        ('EURO S1', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('EURO S2', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('TAMACO', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
+        ('TAMACA', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
+        ('HUMBOLDT', 'Alejandro', 1, 0, 0, 0, 0, 0, ''),
+        ('GOLD DATA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
+        ('PAGO DIRECTO', 'Gustavo', 1, 0, 1, 0, 1, 0, ''),
+        ('CUBITT', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
+        ('KURIOS', 'Eduard', 0, 0, 0, 0, 1, 0, ''),
+        ('CASHEA P9', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('CASHEA P18', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('DICAM', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
+        ('FISA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
+        ('DOMESA', 'Eduard', 1, 1, 1, 1, 1, 0, ''),
+        ('TU GRUERO', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
+        ('UNION RADIO', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('FORUM P7', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('FORUM P15', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('BANGENTE', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('PROVINCIAL', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
+        ('TRANRED', 'Eduard', 0, 0, 1, 0, 0, 0, ''),
+        ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
+        ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0, ''),
+        ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
+        ('ASIMETRIX', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
     ]
 
     cursor.executemany(
         """
-            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         sample_locations,
     )
     conn.commit()
+
   conn.close()
 
 
@@ -148,8 +151,8 @@ def agregar_maquina(
   cursor = conn.cursor()
   cursor.execute(
       """
-        INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, '')
     """,
       (
           nombre,
@@ -209,7 +212,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (BOTÓN DE MENÚ SIEMPRE VISIBLE)
+# ESTILOS CSS (TABLA COMPACTA Y BOTÓN DE MENÚ VISIBLE)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -328,7 +331,7 @@ modo = st.sidebar.radio(
 
 
 # ---------------------------------------------------------
-# TABLERO TV EN VIVO
+# TABLERO TV EN VIVO (REFRESCO CADA 10 SEGUNDOS)
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_tv():
@@ -375,7 +378,7 @@ def renderizar_tablero_tv():
 
 
 # ---------------------------------------------------------
-# VISTAS
+# VISTAS PRINCIPALES
 # ---------------------------------------------------------
 if modo == '📺 Tablero TV 43"':
   renderizar_tablero_tv()
@@ -504,3 +507,4 @@ elif modo == '⚙️ Panel de Control (Jefes)':
               eliminar_maquina(row['id'])
               st.warning('Registro eliminado.')
               st.rerun()
+            
