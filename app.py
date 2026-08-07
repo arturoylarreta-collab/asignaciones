@@ -1,6 +1,6 @@
 """
-Sistema de Control Logístico y Distribución en Streamlit
-Tablero Interactivo Multi-Columna con Casillas Clickeables en Tiempo Real
+Tablero Ejecutivo de Control Logístico y Distribución para TV
+Diseño Prémium Estilizado con Recuadros Interativos en Tiempo Real
 """
 
 import os
@@ -15,7 +15,7 @@ import streamlit as st
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title='Tablero Logístico Interactivo',
+    page_title='Tablero Logístico TV',
     page_icon='🚚',
     layout='wide',
     initial_sidebar_state='collapsed',
@@ -93,7 +93,7 @@ MOTORIZADOS_CONFIG = {
     'Freduard': {'code': 'FR', 'bg': '#7c3aed', 'color': '#ffffff'},
     'Alejandro': {'code': 'AL', 'bg': '#059669', 'color': '#ffffff'},
     'Gustavo': {'code': 'GU', 'bg': '#d97706', 'color': '#ffffff'},
-    'Sin Asignar': {'code': '--', 'bg': '#475569', 'color': '#cbd5e1'},
+    'Sin Asignar': {'code': '--', 'bg': '#334155', 'color': '#94a3b8'},
 }
 
 MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
@@ -130,7 +130,6 @@ def init_db(force_reset=False):
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   total_registros = cursor.fetchone()[0]
 
-  # Forzar actualización si la cantidad no coincide con las 61 máquinas
   if total_registros != len(LISTA_MAESTRA_61) or force_reset:
     cursor.execute('DELETE FROM maquinas')
 
@@ -163,12 +162,12 @@ def cargar_maquinas():
   return df
 
 
-def actualizar_dia_db(m_id, columna_dia, nuevo_valor):
+def toggle_dia_db(m_id, columna_dia, valor_actual):
   conn = get_db_connection()
   cursor = conn.cursor()
-  val_int = 1 if nuevo_valor else 0
+  nuevo_valor = 0 if valor_actual == 1 else 1
   cursor.execute(
-      f'UPDATE maquinas SET {columna_dia}=? WHERE id=?', (val_int, m_id)
+      f'UPDATE maquinas SET {columna_dia}=? WHERE id=?', (nuevo_valor, m_id)
   )
   conn.commit()
   conn.close()
@@ -234,7 +233,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS Y COMPACTACIÓN DE CHECKBOXES
+# ESTILOS CSS ESTILIZADOS PARA PANTALLA TV
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -244,92 +243,122 @@ st.markdown(
     [data-testid="stHeader"] { background-color: transparent !important; z-index: 100000 !important; }
     
     .block-container {
-        padding-top: 0.3rem !important;
+        padding-top: 0.2rem !important;
         padding-bottom: 0.1rem !important;
         padding-left: 0.3rem !important;
         padding-right: 0.3rem !important;
         max-width: 100% !important;
     }
     
-    .stApp { background-color: #0f172a; color: #f8fafc; }
+    .stApp { background-color: #0b1329; color: #f8fafc; }
     
-    .live-header-vertical {
-        background-color: #1e293b;
-        padding: 0.3rem 0.6rem;
-        border-radius: 6px;
-        margin-bottom: 0.3rem;
+    /* Encabezado Principal */
+    .tv-header {
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+        padding: 0.35rem 0.8rem;
+        border-radius: 8px;
+        margin-bottom: 0.4rem;
         border: 1px solid #334155;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     }
-    .live-badge {
+    .tv-badge {
         background-color: #ef4444;
         color: white;
-        padding: 0.1rem 0.4rem;
-        border-radius: 10px;
-        font-weight: bold;
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        font-weight: 800;
         font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        animation: pulse 2s infinite;
     }
-    .live-title { font-size: 1.05rem; font-weight: 800; color: #f1f5f9; }
-    .live-time { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
+    .tv-title { font-size: 1.15rem; font-weight: 900; color: #ffffff; letter-spacing: 0.5px; }
+    .tv-time { font-size: 0.9rem; font-weight: 800; color: #38bdf8; }
     
+    /* Leyenda de Responsables */
     .legend-box {
         background-color: #1e293b;
         border: 1px solid #334155;
         border-radius: 6px;
-        padding: 4px 8px;
+        padding: 4px 10px;
         margin-bottom: 6px;
         display: flex;
-        flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
     }
-    .legend-item { display: inline-flex; align-items: center; font-size: 0.75rem; font-weight: 700; color: #e2e8f0; }
+    .legend-item { display: inline-flex; align-items: center; font-size: 0.75rem; font-weight: 800; color: #cbd5e1; gap: 5px; }
     .moto-badge {
         display: inline-block;
-        padding: 1px 4px;
+        padding: 2px 6px;
         border-radius: 4px;
         font-weight: 900;
-        font-size: 0.68rem;
+        font-size: 0.7rem;
         text-align: center;
-        min-width: 20px;
+        min-width: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
     
-    /* Estilos compactos para las filas interactivas */
+    /* Encabezados de Tabla */
     .table-header {
-        background-color: #0f172a;
+        background-color: #1e293b;
         color: #38bdf8;
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         font-weight: 800;
-        padding: 4px 2px;
-        border-bottom: 2px solid #334155;
+        padding: 5px 2px;
+        border-radius: 4px;
         text-align: center;
+        margin-bottom: 4px;
+        border: 1px solid #334155;
     }
     
     .row-location {
-        font-size: 0.76rem;
+        font-size: 0.78rem;
         font-weight: 800;
         color: #ffffff !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        padding-top: 4px;
+        padding-top: 3px;
     }
     
-    /* Personalización de los checkboxes de Streamlit para TV */
-    div[data-testid="stCheckbox"] {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-top: -4px;
+    /* Botones de Recuadros Clickeables */
+    div[data-testid="stColumn"] button {
+        width: 100% !important;
+        height: 26px !important;
+        min-height: 26px !important;
+        padding: 0px !important;
+        font-size: 0.75rem !important;
+        font-weight: 900 !important;
+        border-radius: 4px !important;
+        margin: 0px !important;
+        transition: all 0.15s ease-in-out;
     }
-    div[data-testid="stCheckbox"] > label { display: none; }
-    div[data-testid="stCheckbox"] input[type="checkbox"] {
-        width: 18px !important;
-        height: 18px !important;
-        cursor: pointer;
+    
+    /* Estado PENDIENTE (Gris Oscuro) */
+    .btn-pending button {
+        background-color: #1e293b !important;
+        color: #64748b !important;
+        border: 1px solid #334155 !important;
+    }
+    .btn-pending button:hover {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+        border-color: #38bdf8 !important;
+    }
+    
+    /* Estado REALIZADO (Verde Brillante Visibilidad TV) */
+    .btn-done button {
+        background-color: #16a34a !important;
+        color: #ffffff !important;
+        border: 1px solid #22c55e !important;
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.4) !important;
+    }
+    .btn-done button:hover {
+        background-color: #15803d !important;
+        border-color: #4ade80 !important;
     }
 </style>
 """,
@@ -341,23 +370,23 @@ st.markdown(
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
-    'Seleccionar Vista:', ['📱 Tablero Interactivo TV', '⚙️ Panel de Control']
+    'Seleccionar Vista:', ['📱 Tablero TV Ejecutivo', '⚙️ Panel de Control']
 )
 
 
 # ---------------------------------------------------------
-# TABLERO INTERACTIVO EN TIEMPO REAL
+# TABLERO EJECUTIVO TV INTERACTIVO
 # ---------------------------------------------------------
-def renderizar_tablero_interactivo():
+def renderizar_tablero_tv():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
   # Header
   st.markdown(
       f"""
-    <div class="live-header-vertical">
-        <div><span class="live-badge">● EN VIVO</span> <span class="live-title">PROGRAMACIÓN DE RECARGA INTERACTIVA</span></div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #94a3b8;">({fecha_actual})</span></div>
+    <div class="tv-header">
+        <div><span class="tv-badge">● EN VIVO</span> &nbsp;<span class="tv-title">CONTROL DE RECARGAS Y LOGÍSTICA</span></div>
+        <div class="tv-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #94a3b8;">({fecha_actual})</span></div>
     </div>
     """,
       unsafe_allow_html=True,
@@ -373,7 +402,7 @@ def renderizar_tablero_interactivo():
   df_maquinas = cargar_maquinas()
   total_registros = len(df_maquinas)
 
-  # Dividir en 3 columnas verticales paralelas
+  # Dividir en 3 columnas paralelas
   num_cols = 3
   cols_st = st.columns(num_cols)
   chunk_size = (total_registros + num_cols - 1) // num_cols
@@ -389,7 +418,7 @@ def renderizar_tablero_interactivo():
           [0.36, 0.14, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08]
       )
       h_loc.markdown(
-          '<div class="table-header" style="text-align:left;">UBICACIÓN</div>',
+          '<div class="table-header" style="text-align:left; padding-left:4px;">UBICACIÓN</div>',
           unsafe_allow_html=True,
       )
       h_resp.markdown(
@@ -402,7 +431,7 @@ def renderizar_tablero_interactivo():
       h_v.markdown('<div class="table-header">V</div>', unsafe_allow_html=True)
       h_s.markdown('<div class="table-header">S</div>', unsafe_allow_html=True)
 
-      # Filas con Checkboxes Clickeables
+      # Filas estilizadas
       for _, row in sub_df.iterrows():
         m_id = row['id']
         c_loc, c_resp, c_l, c_m, c_x, c_j, c_v, c_s = st.columns(
@@ -419,11 +448,11 @@ def renderizar_tablero_interactivo():
             unsafe_allow_html=True,
         )
         c_resp.markdown(
-            f'<div style="text-align:center; padding-top:2px;">{badge_html}</div>',
+            f'<div style="text-align:center; padding-top:1px;">{badge_html}</div>',
             unsafe_allow_html=True,
         )
 
-        # Recuadros interactivos por cada día
+        # Matriz de recuadros interactivos (L, M, X, J, V, S)
         dias = [
             ('lunes', c_l),
             ('martes', c_m),
@@ -434,26 +463,26 @@ def renderizar_tablero_interactivo():
         ]
 
         for dia_col, col_obj in dias:
-          key_chk = f'chk_{m_id}_{dia_col}'
-          val_actual = bool(row[dia_col])
+          val_actual = int(row[dia_col])
+          key_btn = f'btn_{m_id}_{dia_col}'
 
-          # Al hacer clic en el recuadro, guarda automáticamente en la BD
-          chk = col_obj.checkbox(
-              label='',
-              value=val_actual,
-              key=key_chk,
-              label_visibility='collapsed',
-          )
-          if chk != val_actual:
-            actualizar_dia_db(m_id, dia_col, chk)
-            st.rerun()
+          # Si está marcado, verde brillante con ✓. Si no, recuadro oscuro.
+          label_str = '✓' if val_actual == 1 else '·'
+          css_class = 'btn-done' if val_actual == 1 else 'btn-pending'
+
+          with col_obj:
+            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+            if st.button(label_str, key=key_btn):
+              toggle_dia_db(m_id, dia_col, val_actual)
+              st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
-# VISTAS PRINCIPALES
+# PANEL DE ADMINISTRACIÓN
 # ---------------------------------------------------------
-if modo == '📱 Tablero Interactivo TV':
-  renderizar_tablero_interactivo()
+if modo == '📱 Tablero TV Ejecutivo':
+  renderizar_tablero_tv()
 
 elif modo == '⚙️ Panel de Control':
   st.title('⚙️ Panel de Gestión de Máquinas')
@@ -468,11 +497,11 @@ elif modo == '⚙️ Panel de Control':
   else:
     st.success('🔓 Acceso concedido.')
 
-    if st.sidebar.button('🔄 Forzar Carga de 61 Máquinas Maestras'):
-      with st.spinner('⏳ Restableciendo lista de 61 máquinas...'):
-        time.sleep(0.4)
+    if st.sidebar.button('🔄 Restablecer 61 Ubicaciones Maestras'):
+      with st.spinner('⏳ Restableciendo lista...'):
+        time.sleep(0.3)
         init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida con 61 máquinas!')
+      st.sidebar.success('¡Base de datos restablecida!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
@@ -514,7 +543,7 @@ elif modo == '⚙️ Panel de Control':
             st.error('El nombre no puede estar vacío.')
 
     with col_tabla:
-      st.subheader('📋 Asignaciones y Nombres')
+      st.subheader('📋 Edición de Asignaciones')
       df = cargar_maquinas()
 
       for index, row in df.iterrows():
