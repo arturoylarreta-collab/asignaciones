@@ -11,18 +11,17 @@ import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (Layout Ancho para TV)
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
     page_title='Tablero Logístico - TV 43"',
     page_icon='🚚',
     layout='wide',
-    initial_sidebar_state='collapsed',
+    initial_sidebar_state='expanded',  # Ahora la barra lateral inicia ABIERTA
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
 
-# LISTA OFICIAL DE MOTORIZADOS
 MOTORIZADOS_DISPONIBLES = [
     'Eduard',
     'Freduard',
@@ -33,7 +32,7 @@ MOTORIZADOS_DISPONIBLES = [
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE
+# BASE DE DATOS SQLITE (AUTO-RESETEO SI HAY DATOS VIEJOS)
 # ---------------------------------------------------------
 def get_db_connection():
   conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -63,8 +62,18 @@ def init_db(force_reset=False):
         )
     """)
 
+  # Si detecta los datos de prueba viejos ("Embaladora"), los borra y carga la lista real de 36
+  cursor.execute(
+      "SELECT COUNT(*) FROM maquinas WHERE nombre LIKE '%Embaladora%'"
+  )
+  hay_datos_viejos = cursor.fetchone()[0] > 0
+
   cursor.execute('SELECT COUNT(*) FROM maquinas')
-  if cursor.fetchone()[0] == 0:
+  total_registros = cursor.fetchone()[0]
+
+  if hay_datos_viejos or total_registros == 0:
+    cursor.execute('DELETE FROM maquinas')
+
     sample_locations = [
         ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0),
         ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0),
@@ -200,18 +209,30 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS COMPACTOS PARA TV DE 43" (36 FILAS)
+# ESTILOS CSS (BOTÓN DE MENÚ SIEMPRE VISIBLE)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     
-    /* Reducción de márgenes globales de Streamlit */
+    /* Mantiene visible únicamente el botón del menú lateral */
+    [data-testid="stHeader"] {
+        background-color: transparent !important;
+        z-index: 100000 !important;
+    }
+    [data-testid="stSidebarCollapseButton"], 
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        display: block !important;
+        color: #f8fafc !important;
+        background-color: #1e293b !important;
+        border-radius: 6px !important;
+    }
+    
     .block-container {
-        padding-top: 0.2rem !important;
+        padding-top: 2rem !important;
         padding-bottom: 0.2rem !important;
         padding-left: 0.8rem !important;
         padding-right: 0.8rem !important;
@@ -271,14 +292,8 @@ st.markdown(
         background-color: #0284c7;
         color: #ffffff;
     }
-    .day-pill-sat {
-        background-color: #7c3aed;
-    }
-    .day-empty {
-        color: #475569;
-        font-weight: 400;
-        font-size: 0.85rem;
-    }
+    .day-pill-sat { background-color: #7c3aed; }
+    .day-empty { color: #475569; font-weight: 400; font-size: 0.85rem; }
     
     .live-header {
         display: flex;
@@ -304,7 +319,7 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# NAVEGACIÓN EN SIDEBAR
+# NAVEGACIÓN
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
@@ -313,7 +328,7 @@ modo = st.sidebar.radio(
 
 
 # ---------------------------------------------------------
-# FRAGMENTO DE AUTO-REFRESCO FLUIDO (SIN PARPADEO)
+# TABLERO TV EN VIVO
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_tv():
@@ -337,7 +352,7 @@ def renderizar_tablero_tv():
 
   df_maquinas = cargar_maquinas()
 
-  def get_cell(active, code, is_sat=False):
+  def get_cell(active, is_sat=False):
     if active:
       cls = 'day-pill day-pill-sat' if is_sat else 'day-pill'
       return f'<span class="{cls}">✓</span>'
@@ -345,12 +360,12 @@ def renderizar_tablero_tv():
 
   html_rows = ''
   for _, m in df_maquinas.iterrows():
-    c_l = get_cell(m['lunes'], 'L')
-    c_m = get_cell(m['martes'], 'M')
-    c_x = get_cell(m['miercoles'], 'X')
-    c_j = get_cell(m['jueves'], 'J')
-    c_v = get_cell(m['viernes'], 'V')
-    c_s = get_cell(m['sabado'], 'S', is_sat=True)
+    c_l = get_cell(m['lunes'])
+    c_m = get_cell(m['martes'])
+    c_x = get_cell(m['miercoles'])
+    c_j = get_cell(m['jueves'])
+    c_v = get_cell(m['viernes'])
+    c_s = get_cell(m['sabado'], is_sat=True)
 
     html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m["motorizado"]}</span></td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
 
@@ -360,7 +375,7 @@ def renderizar_tablero_tv():
 
 
 # ---------------------------------------------------------
-# LÓGICA DE VISTAS
+# VISTAS
 # ---------------------------------------------------------
 if modo == '📺 Tablero TV 43"':
   renderizar_tablero_tv()
@@ -378,9 +393,9 @@ elif modo == '⚙️ Panel de Control (Jefes)':
   else:
     st.success('🔓 Acceso concedido como Supervisor.')
 
-    if st.sidebar.button('🔄 Cargar Lista Completa de Ubicaciones'):
+    if st.sidebar.button('🔄 Recargar/Restablecer Lista Base'):
       init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida con la nueva tabla!')
+      st.sidebar.success('¡Base de datos restablecida!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
