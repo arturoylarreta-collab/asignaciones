@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseñado para Pantalla TV 43" (Vista Matriz Estilo Pizarra)
+Diseñado para Pantalla TV 43" (Sin parpadeos / Actualización fluida)
 """
 
 import os
@@ -239,7 +239,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (ESTILO PIZARRA DE CONTROL)
+# ESTILOS CSS PERSONALIZADOS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -348,41 +348,36 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# NAVEGACIÓN
+# NAVEGACIÓN EN SIDEBAR
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
     'Seleccionar Vista:', ['📺 Tablero TV 43"', '⚙️ Panel de Control (Jefes)']
 )
-refresco_sec = st.sidebar.slider(
-    'Frecuencia de Auto-refresco TV (segundos):', 3, 30, 5
-)
 
-if modo == '📺 Tablero TV 43"':
-  st.markdown(
-      f'<meta http-equiv="refresh" content="{refresco_sec}">',
-      unsafe_allow_html=True,
-  )
 
+# ---------------------------------------------------------
+# FRAGMENTO DE AUTO-REFRESCO FLUIDO (SIN PARPADEO)
+# ---------------------------------------------------------
+@st.fragment(run_every=10)
+def renderizar_tablero_tv():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
-  col_h1, col_h2 = st.columns([3, 1])
-  with col_h1:
-    st.markdown(
-        f"""
-        <div class="live-header">
-            <div>
-                <span class="live-badge">● EN VIVO</span>
-                <span style="font-size: 1.8rem; font-weight: 800; margin-left: 10px; color: #f1f5f9;">PROGRAMACIÓN SEMANAL DE RECARGA</span>
-            </div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: #38bdf8;">
-                ⏱️ {hora_actual} <span style="font-size: 1.1rem; color: #94a3b8;">({fecha_actual})</span>
-            </div>
+  st.markdown(
+      f"""
+    <div class="live-header">
+        <div>
+            <span class="live-badge">● EN VIVO</span>
+            <span style="font-size: 1.8rem; font-weight: 800; margin-left: 10px; color: #f1f5f9;">PROGRAMACIÓN SEMANAL DE RECARGA</span>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        <div style="font-size: 1.8rem; font-weight: 700; color: #38bdf8;">
+            ⏱️ {hora_actual} <span style="font-size: 1.1rem; color: #94a3b8;">({fecha_actual})</span>
+        </div>
+    </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
   df_maquinas = cargar_maquinas()
 
@@ -406,6 +401,13 @@ if modo == '📺 Tablero TV 43"':
   tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 30%;">Máquina / Ubicación</th><th style="width: 14%;">Prioridad</th><th style="width: 22%;">Motorizado Asignado</th><th class="day-header">L</th><th class="day-header">M</th><th class="day-header">X</th><th class="day-header">J</th><th class="day-header">V</th><th class="day-header">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
 
   st.markdown(tabla_completa, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------
+# LÓGICA DE VISTAS
+# ---------------------------------------------------------
+if modo == '📺 Tablero TV 43"':
+  renderizar_tablero_tv()
 
 elif modo == '⚙️ Panel de Control (Jefes)':
   st.title('⚙️ Panel de Gestión de Máquinas y Motorizados')
