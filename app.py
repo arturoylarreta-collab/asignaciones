@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Multi-Columna Vertical para 100 Ubicaciones en TV
+Diseño Multi-Columna Vertical para 61+ Ubicaciones en TV
 """
 
 import os
@@ -48,15 +48,8 @@ def init_db(force_reset=False):
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  try:
-    cursor.execute(
-        "SELECT COUNT(*) FROM maquinas WHERE nombre LIKE '%Embaladora%'"
-    )
-    hay_datos_viejos = cursor.fetchone()[0] > 0
-  except sqlite3.OperationalError:
-    hay_datos_viejos = False
-
-  if hay_datos_viejos or force_reset:
+  # Si se solicita reset o la tabla no existe, recreamos la estructura
+  if force_reset:
     cursor.execute('DROP TABLE IF EXISTS maquinas')
 
   cursor.execute("""
@@ -77,11 +70,16 @@ def init_db(force_reset=False):
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   total_registros = cursor.fetchone()[0]
 
-  if total_registros == 0:
+  # Carga de las 61 máquinas reales proporcionadas
+  if total_registros == 0 or force_reset:
+    cursor.execute('DELETE FROM maquinas')
+
     sample_locations = [
         ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
         ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
         ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0, ''),
+        ('UCV ING', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('UCV COMP', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
         ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0, ''),
         ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
         ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
@@ -113,8 +111,31 @@ def init_db(force_reset=False):
         ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
         ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
         ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0, ''),
+        ('ADROMEDA', 'Freduard', 1, 0, 0, 1, 0, 0, ''),
         ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
-        ('ASIMETRIX', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
+        ('TIO AMMI 1', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
+        ('TIO AMMI 2', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
+        ('RS1 RECEP', 'Gustavo', 1, 0, 0, 0, 1, 0, ''),
+        ('RS2 COMED', 'Gustavo', 0, 1, 0, 1, 0, 0, ''),
+        ('WECONNECT', 'Alejandro', 0, 0, 1, 0, 1, 0, ''),
+        ('CEMENTERIO', 'Freduard', 1, 0, 1, 0, 0, 0, ''),
+        ('HEBRAICA', 'Freduard', 0, 1, 0, 1, 0, 0, ''),
+        ('POLICLINICA P3', 'Eduard', 1, 0, 1, 0, 1, 0, ''),
+        ('POLICLINICA P4', 'Eduard', 1, 0, 1, 0, 1, 0, ''),
+        ('FLORESTA EM', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('FLORESTA P3', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('AVILA ADULT', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
+        ('AVILA PEDT', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
+        ('SANATRIX', 'Freduard', 0, 1, 0, 1, 0, 0, ''),
+        ('VENE CHACAO', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
+        ('VENE ALTAMIRA', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
+        ('VENE CANDELARIA', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
+        ('FLORIDA', 'Gustavo', 0, 0, 1, 0, 1, 0, ''),
+        ('CCS S1', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
+        ('CCS S2', 'Alejandro', 0, 1, 0, 0, 1, 0, ''),
+        ('FENIX', 'Freduard', 1, 0, 1, 0, 0, 0, ''),
+        ('OFICENTRO 1', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('OFICENTRO 2', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
     ]
 
     cursor.executemany(
@@ -199,7 +220,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (CORRECCIÓN DE TEXTO Y OPTIMIZACIÓN MULTI-COLUMNA)
+# ESTILOS CSS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -316,7 +337,6 @@ st.markdown(
         text-align: center;
     }
     
-    /* Corrección clave de color y tamaño para los nombres */
     .tv-table td {
         padding: 0.12rem 0.25rem !important;
         border-bottom: 1px solid #334155;
@@ -365,7 +385,6 @@ def renderizar_tablero_vertical():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
-  # 1. Encabezado en Vivo
   st.markdown(
       f"""
     <div class="live-header-vertical">
@@ -376,18 +395,16 @@ def renderizar_tablero_vertical():
       unsafe_allow_html=True,
   )
 
-  # 2. Leyenda de Asignación
   legend_html = '<div class="legend-box">'
   for nombre, cfg in MOTORIZADOS_CONFIG.items():
     legend_html += f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
   legend_html += '</div>'
   st.markdown(legend_html, unsafe_allow_html=True)
 
-  # 3. División Automática en Columnas Verticales Paralelas
   df_maquinas = cargar_maquinas()
   total_registros = len(df_maquinas)
 
-  # Determina cuántas columnas usar según la cantidad de registros
+  # Si hay más de 36 registros se divide en 3 columnas
   if total_registros <= 36:
     num_cols = 2
   else:
@@ -422,7 +439,6 @@ def renderizar_tablero_vertical():
 
     return f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 44%;">UBICACIÓN</th><th class="center-header" style="width: 14%;">RESP.</th><th class="center-header" style="width: 7%;">L</th><th class="center-header" style="width: 7%;">M</th><th class="center-header" style="width: 7%;">X</th><th class="center-header" style="width: 7%;">J</th><th class="center-header" style="width: 7%;">V</th><th class="center-header" style="width: 7%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
 
-  # Divide el DataFrame en partes iguales por columna
   chunk_size = (total_registros + num_cols - 1) // num_cols
 
   for i in range(num_cols):
@@ -454,13 +470,13 @@ elif modo == '⚙️ Panel de Control':
   else:
     st.success('🔓 Acceso concedido como Supervisor.')
 
-    if st.sidebar.button('🔄 Restablecer Lista Completa (36)'):
+    if st.sidebar.button('🔄 Restablecer Carga Completa (61)'):
       with st.spinner(
-          '⏳ Restableciendo base de datos y cargando 36 ubicaciones...'
+          '⏳ Cargando lista completa de 61 máquinas en la base de datos...'
       ):
         time.sleep(0.5)
         init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida correctamente!')
+      st.sidebar.success('¡Base de datos restablecida con las 61 máquinas!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
@@ -486,11 +502,8 @@ elif modo == '⚙️ Panel de Control':
 
         if btn_guardar:
           if nombre_nuevo.strip():
-            with st.spinner(
-                f"⏳ Guardando '{nombre_nuevo}' en el sistema... Por favor"
-                ' espere...'
-            ):
-              time.sleep(0.4)
+            with st.spinner(f"⏳ Guardando '{nombre_nuevo}'..."):
+              time.sleep(0.3)
               agregar_maquina(
                   nombre_nuevo,
                   moto_nuevo,
@@ -560,10 +573,8 @@ elif modo == '⚙️ Panel de Control':
               btn_eliminar = st.form_submit_button('🗑️ Eliminar')
 
             if btn_actualizar:
-              with st.spinner(
-                  f"⏳ Actualizando '{e_nombre}'... Por favor espere..."
-              ):
-                time.sleep(0.4)
+              with st.spinner(f"⏳ Actualizando '{e_nombre}'..."):
+                time.sleep(0.3)
                 actualizar_maquina(
                     row['id'],
                     e_nombre,
@@ -575,12 +586,12 @@ elif modo == '⚙️ Panel de Control':
                     e_v,
                     e_s,
                 )
-              st.success('Cambios guardados exitosamente.')
+              st.success('Cambios guardados.')
               st.rerun()
 
             if btn_eliminar:
-              with st.spinner(f"⏳ Eliminando registro... Por favor espere..."):
-                time.sleep(0.4)
+              with st.spinner('⏳ Eliminando registro...'):
+                time.sleep(0.3)
                 eliminar_maquina(row['id'])
               st.warning('Registro eliminado.')
               st.rerun()
