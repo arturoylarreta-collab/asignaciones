@@ -1,20 +1,21 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseñado para Pantalla TV 43" (Vista Compacta - 36 filas en 1 sola pantalla)
+Optimizado para Pantalla Vertical (TV / Monitor Vertical) con Leyendas y Carga
 """
 
 import os
 import sqlite3
 import tempfile
+import time
 from datetime import datetime
 import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (FORMATO VERTICAL)
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title='Tablero Logístico - TV 43"',
+    page_title='Tablero Logístico Vertical',
     page_icon='🚚',
     layout='wide',
     initial_sidebar_state='expanded',
@@ -22,13 +23,16 @@ st.set_page_config(
 
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
 
-MOTORIZADOS_DISPONIBLES = [
-    'Eduard',
-    'Freduard',
-    'Alejandro',
-    'Gustavo',
-    'Sin Asignar',
-]
+# Mapeo de Leyendas (Iniciales, Nombre, Color de Fondo, Color de Texto)
+MOTORIZADOS_CONFIG = {
+    'Eduard': {'code': 'ED', 'bg': '#2563eb', 'color': '#ffffff'},
+    'Freduard': {'code': 'FR', 'bg': '#7c3aed', 'color': '#ffffff'},
+    'Alejandro': {'code': 'AL', 'bg': '#059669', 'color': '#ffffff'},
+    'Gustavo': {'code': 'GU', 'bg': '#d97706', 'color': '#ffffff'},
+    'Sin Asignar': {'code': '--', 'bg': '#475569', 'color': '#cbd5e1'},
+}
+
+MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
 
 
 # ---------------------------------------------------------
@@ -44,7 +48,6 @@ def init_db(force_reset=False):
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  # Verificar si la tabla existe o si tiene datos antiguos de prueba
   try:
     cursor.execute(
         "SELECT COUNT(*) FROM maquinas WHERE nombre LIKE '%Embaladora%'"
@@ -53,7 +56,6 @@ def init_db(force_reset=False):
   except sqlite3.OperationalError:
     hay_datos_viejos = False
 
-  # Si se detectan datos de prueba viejos o cambio de estructura, se reinicia la tabla limpia
   if hay_datos_viejos or force_reset:
     cursor.execute('DROP TABLE IF EXISTS maquinas')
 
@@ -138,14 +140,7 @@ def cargar_maquinas():
 
 
 def agregar_maquina(
-    nombre,
-    motorizado,
-    lunes,
-    martes,
-    miercoles,
-    jueves,
-    viernes,
-    sabado,
+    nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado
 ):
   conn = get_db_connection()
   cursor = conn.cursor()
@@ -170,15 +165,7 @@ def agregar_maquina(
 
 
 def actualizar_maquina(
-    m_id,
-    nombre,
-    motorizado,
-    lunes,
-    martes,
-    miercoles,
-    jueves,
-    viernes,
-    sabado,
+    m_id, nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado
 ):
   conn = get_db_connection()
   cursor = conn.cursor()
@@ -212,7 +199,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (TABLA COMPACTA Y BOTÓN DE MENÚ VISIBLE)
+# ESTILOS CSS (DISEÑO VERTICAL Y LEYENDAS OPTIMIZADAS)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -220,7 +207,7 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Mantiene visible únicamente el botón del menú lateral */
+    /* Botón de Menú lateral visible */
     [data-testid="stHeader"] {
         background-color: transparent !important;
         z-index: 100000 !important;
@@ -235,20 +222,82 @@ st.markdown(
     }
     
     .block-container {
-        padding-top: 2rem !important;
+        padding-top: 1rem !important;
         padding-bottom: 0.2rem !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         max-width: 100% !important;
     }
     
     .stApp { background-color: #0f172a; color: #f8fafc; }
     
+    /* Encabezado compacto */
+    .live-header-vertical {
+        background-color: #1e293b;
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        margin-bottom: 0.4rem;
+        border: 1px solid #334155;
+        text-align: center;
+    }
+    .live-badge {
+        background-color: #ef4444;
+        color: white;
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+    .live-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        margin-top: 4px;
+        margin-bottom: 2px;
+    }
+    .live-time {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #38bdf8;
+    }
+    
+    /* Caja de Leyenda de Asignaciones */
+    .legend-box {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+    }
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #e2e8f0;
+    }
+    .moto-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 900;
+        font-size: 0.75rem;
+        text-align: center;
+        min-width: 24px;
+        margin-right: 4px;
+    }
+    
+    /* Contenedor de la Tabla Vertical */
     .tv-container {
         width: 100%;
         background-color: #1e293b;
         border-radius: 8px;
-        padding: 4px;
+        padding: 2px;
         border: 1px solid #334155;
     }
     .tv-table {
@@ -260,62 +309,41 @@ st.markdown(
     .tv-table th {
         background-color: #0f172a;
         color: #38bdf8;
-        font-size: 0.95rem;
+        font-size: 0.82rem;
         font-weight: 800;
         text-transform: uppercase;
-        padding: 0.3rem 0.5rem;
+        padding: 0.35rem 0.3rem;
         border-bottom: 2px solid #334155;
         text-align: left;
     }
-    .tv-table th.day-header {
+    .tv-table th.center-header {
         text-align: center;
-        width: 6%;
-        font-size: 1rem;
-        color: #f8fafc;
     }
     .tv-table td {
-        padding: 0.15rem 0.5rem !important;
+        padding: 0.18rem 0.3rem !important;
         border-bottom: 1px solid #334155;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 700;
         vertical-align: middle;
         line-height: 1.1;
     }
-    .tv-table tr:nth-child(even) { background-color: #1a2436; }
+    .tv-table tr:nth-child(even) { background-color: #162032; }
     
+    /* Indicador de Días Activos */
     .day-pill {
         display: inline-flex;
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         align-items: center;
         justify-content: center;
         border-radius: 4px;
         font-weight: 800;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         background-color: #0284c7;
         color: #ffffff;
     }
     .day-pill-sat { background-color: #7c3aed; }
-    .day-empty { color: #475569; font-weight: 400; font-size: 0.85rem; }
-    
-    .live-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: #1e293b;
-        padding: 0.4rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.4rem;
-        border: 1px solid #334155;
-    }
-    .live-badge {
-        background-color: #ef4444;
-        color: white;
-        padding: 0.15rem 0.5rem;
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 0.85rem;
-    }
+    .day-empty { color: #475569; font-weight: 400; font-size: 0.75rem; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -326,33 +354,38 @@ st.markdown(
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
-    'Seleccionar Vista:', ['📺 Tablero TV 43"', '⚙️ Panel de Control (Jefes)']
+    'Seleccionar Vista:', ['📱 Tablero Vertical', '⚙️ Panel de Control']
 )
 
 
 # ---------------------------------------------------------
-# TABLERO TV EN VIVO (REFRESCO CADA 10 SEGUNDOS)
+# TABLERO VERTICAL EN VIVO
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
-def renderizar_tablero_tv():
+def renderizar_tablero_vertical():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
+  # 1. Encabezado en Vivo
   st.markdown(
       f"""
-    <div class="live-header">
-        <div>
-            <span class="live-badge">● EN VIVO</span>
-            <span style="font-size: 1.2rem; font-weight: 800; margin-left: 8px; color: #f1f5f9;">PROGRAMACIÓN SEMANAL DE RECARGA</span>
-        </div>
-        <div style="font-size: 1.2rem; font-weight: 700; color: #38bdf8;">
-            ⏱️ {hora_actual} <span style="font-size: 0.9rem; color: #94a3b8;">({fecha_actual})</span>
-        </div>
+    <div class="live-header-vertical">
+        <div><span class="live-badge">● EN VIVO</span></div>
+        <div class="live-title">PROGRAMACIÓN DE RECARGA</div>
+        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.8rem; color: #94a3b8;">({fecha_actual})</span></div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
+  # 2. Leyenda de Asignación de Nombres
+  legend_html = '<div class="legend-box">'
+  for nombre, cfg in MOTORIZADOS_CONFIG.items():
+    legend_html += f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
+  legend_html += '</div>'
+  st.markdown(legend_html, unsafe_allow_html=True)
+
+  # 3. Construcción de Tabla Optimizada
   df_maquinas = cargar_maquinas()
 
   def get_cell(active, is_sat=False):
@@ -361,8 +394,15 @@ def renderizar_tablero_tv():
       return f'<span class="{cls}">✓</span>'
     return '<span class="day-empty">-</span>'
 
+  def get_moto_badge(motorizado_nombre):
+    cfg = MOTORIZADOS_CONFIG.get(
+        motorizado_nombre, MOTORIZADOS_CONFIG['Sin Asignar']
+    )
+    return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
+
   html_rows = ''
   for _, m in df_maquinas.iterrows():
+    badge_moto = get_moto_badge(m['motorizado'])
     c_l = get_cell(m['lunes'])
     c_m = get_cell(m['martes'])
     c_x = get_cell(m['miercoles'])
@@ -370,9 +410,9 @@ def renderizar_tablero_tv():
     c_v = get_cell(m['viernes'])
     c_s = get_cell(m['sabado'], is_sat=True)
 
-    html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m["motorizado"]}</span></td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
+    html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td style="text-align: center;">{badge_moto}</td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
 
-  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 44%;">MÁQUINA / UBICACIÓN</th><th style="width: 20%;">MOTORIZADO ASIGNADO</th><th class="day-header">L</th><th class="day-header">M</th><th class="day-header">X</th><th class="day-header">J</th><th class="day-header">V</th><th class="day-header">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
+  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 48%;">UBICACIÓN</th><th class="center-header" style="width: 14%;">RESP.</th><th class="center-header" style="width: 6%;">L</th><th class="center-header" style="width: 6%;">M</th><th class="center-header" style="width: 6%;">X</th><th class="center-header" style="width: 6%;">J</th><th class="center-header" style="width: 6%;">V</th><th class="center-header" style="width: 6%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
 
   st.markdown(tabla_completa, unsafe_allow_html=True)
 
@@ -380,15 +420,15 @@ def renderizar_tablero_tv():
 # ---------------------------------------------------------
 # VISTAS PRINCIPALES
 # ---------------------------------------------------------
-if modo == '📺 Tablero TV 43"':
-  renderizar_tablero_tv()
+if modo == '📱 Tablero Vertical':
+  renderizar_tablero_vertical()
 
-elif modo == '⚙️ Panel de Control (Jefes)':
-  st.title('⚙️ Panel de Gestión de Máquinas y Motorizados')
+elif modo == '⚙️ Panel de Control':
+  st.title('⚙️ Panel de Gestión')
   st.markdown('---')
 
   pin_ingresado = st.sidebar.text_input(
-      'Clave de Acceso Supervisor:', type='password', value='1234'
+      'Clave Supervisor:', type='password', value='1234'
   )
 
   if pin_ingresado != '1234':
@@ -396,17 +436,22 @@ elif modo == '⚙️ Panel de Control (Jefes)':
   else:
     st.success('🔓 Acceso concedido como Supervisor.')
 
-    if st.sidebar.button('🔄 Recargar/Restablecer Lista Base'):
-      init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida!')
+    # Restablecer Base de Datos con Caja de Confirmación de Espera
+    if st.sidebar.button('🔄 Restablecer Lista Completa (36)'):
+      with st.spinner(
+          '⏳ Restableciendo base de datos y cargando 36 ubicaciones...'
+      ):
+        time.sleep(0.5)
+        init_db(force_reset=True)
+      st.sidebar.success('¡Base de datos restablecida correctamente!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
 
     with col_form:
-      st.subheader('➕ Agregar Nueva Ubicación')
+      st.subheader('➕ Agregar Ubicación')
       with st.form('form_agregar', clear_on_submit=True):
-        nombre_nuevo = st.text_input('Máquina / Ubicación:')
+        nombre_nuevo = st.text_input('Nombre de Ubicación:')
         moto_nuevo = st.selectbox(
             'Motorizado Asignado:', MOTORIZADOS_DISPONIBLES, index=0
         )
@@ -421,30 +466,40 @@ elif modo == '⚙️ Panel de Control (Jefes)':
         s_val = c_s.checkbox('S', value=False)
 
         btn_guardar = st.form_submit_button('💾 Guardar Ubicación')
+
         if btn_guardar:
           if nombre_nuevo.strip():
-            agregar_maquina(
-                nombre_nuevo,
-                moto_nuevo,
-                l_val,
-                m_val,
-                x_val,
-                j_val,
-                v_val,
-                s_val,
-            )
-            st.success(f"Ubicación '{nombre_nuevo}' agregada con éxito.")
+            # CAJA DE CONFIRMACIÓN DE ESPERA
+            with st.spinner(
+                f"⏳ Guardando '{nombre_nuevo}' en el sistema... Por favor"
+                ' espere...'
+            ):
+              time.sleep(0.4)
+              agregar_maquina(
+                  nombre_nuevo,
+                  moto_nuevo,
+                  l_val,
+                  m_val,
+                  x_val,
+                  j_val,
+                  v_val,
+                  s_val,
+              )
+            st.success(f"Ubicación '{nombre_nuevo}' guardada con éxito.")
             st.rerun()
           else:
-            st.error('El nombre de la ubicación no puede estar vacío.')
+            st.error('El nombre no puede estar vacío.')
 
     with col_tabla:
       st.subheader('📋 Modificar / Asignar Existentes')
       df = cargar_maquinas()
 
       for index, row in df.iterrows():
+        cfg = MOTORIZADOS_CONFIG.get(
+            row['motorizado'], MOTORIZADOS_CONFIG['Sin Asignar']
+        )
         with st.expander(
-            f"📌 {row['nombre']} | Motorizado: {row['motorizado']}"
+            f"📌 {row['nombre']} | [{cfg['code']}] {row['motorizado']}"
         ):
           with st.form(f"form_edit_{row['id']}"):
             e_nombre = st.text_input('Ubicación:', value=row['nombre'])
@@ -461,7 +516,7 @@ elif modo == '⚙️ Panel de Control (Jefes)':
                 key=f"moto_{row['id']}",
             )
 
-            st.write('**Días Activos de Recarga:**')
+            st.write('**Días Activos:**')
             d1, d2, d3, d4, d5, d6 = st.columns(6)
             e_l = d1.checkbox(
                 'L', value=bool(row['lunes']), key=f"l_{row['id']}"
@@ -484,27 +539,34 @@ elif modo == '⚙️ Panel de Control (Jefes)':
 
             col_b1, col_b2 = st.columns([1, 1])
             with col_b1:
-              btn_actualizar = st.form_submit_button('💾 Actualizar Cambios')
+              btn_actualizar = st.form_submit_button('💾 Actualizar')
             with col_b2:
-              btn_eliminar = st.form_submit_button('🗑️ Eliminar Registro')
+              btn_eliminar = st.form_submit_button('🗑️ Eliminar')
 
+            # CAJA DE CONFIRMACIÓN DE ESPERA AL ACTUALIZAR
             if btn_actualizar:
-              actualizar_maquina(
-                  row['id'],
-                  e_nombre,
-                  e_moto,
-                  e_l,
-                  e_m,
-                  e_x,
-                  e_j,
-                  e_v,
-                  e_s,
-              )
-              st.success('Cambios guardados.')
+              with st.spinner(
+                  f"⏳ Actualizando '{e_nombre}'... Por favor espere..."
+              ):
+                time.sleep(0.4)
+                actualizar_maquina(
+                    row['id'],
+                    e_nombre,
+                    e_moto,
+                    e_l,
+                    e_m,
+                    e_x,
+                    e_j,
+                    e_v,
+                    e_s,
+                )
+              st.success('Cambios guardados exitosamente.')
               st.rerun()
 
+            # CAJA DE CONFIRMACIÓN DE ESPERA AL ELIMINAR
             if btn_eliminar:
-              eliminar_maquina(row['id'])
+              with st.spinner(f"⏳ Eliminando registro... Por favor espere..."):
+                time.sleep(0.4)
+                eliminar_maquina(row['id'])
               st.warning('Registro eliminado.')
               st.rerun()
-            
