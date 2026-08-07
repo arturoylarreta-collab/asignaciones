@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Multi-Columna Vertical para 61+ Ubicaciones en TV
+Tablero Interactivo Multi-Columna con Casillas Clickeables en Tiempo Real
 """
 
 import os
@@ -15,15 +15,79 @@ import streamlit as st
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title='Tablero Logístico Multi-Columna',
+    page_title='Tablero Logístico Interactivo',
     page_icon='🚚',
     layout='wide',
-    initial_sidebar_state='expanded',
+    initial_sidebar_state='collapsed',
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
 
-# Mapeo de Leyendas (Iniciales, Nombre, Color de Fondo, Color de Texto)
+# Lista Maestra de las 61 Ubicaciones requeridas
+LISTA_MAESTRA_61 = [
+    'Unimet PB',
+    'Unimet LAB',
+    'Unimet EM',
+    'UCV ING',
+    'UCV COMP',
+    'UCAB CONVERT',
+    'UCAB LAB',
+    'UCAB P1',
+    'UCAB MEZ',
+    'UCAB M3',
+    'USM',
+    'MONTAÑA',
+    'EURO S1',
+    'EURO S2',
+    'TAMACO',
+    'TAMACA',
+    'HUMBOLDT',
+    'GOLD DATA',
+    'PAGO DIRECTO',
+    'CUBITT',
+    'KURIOS',
+    'CASHEA P9',
+    'CASHEA P18',
+    'DICAM',
+    'FISA',
+    'DOMESA',
+    'TU GRUERO',
+    'UNION RADIO',
+    'FORUM P7',
+    'FORUM P15',
+    'BANGENTE',
+    'PROVINCIAL',
+    'TRANRED',
+    'ROBIN',
+    'CALLCENTER DRCC',
+    'DUNCAN',
+    'ADROMEDA',
+    'PEGASO',
+    'TIO AMMI 1',
+    'TIO AMMI 2',
+    'RS1 RECEP',
+    'RS2 COMED',
+    'WECONNECT',
+    'CEMENTERIO',
+    'HEBRAICA',
+    'POLICLINICA P3',
+    'POLICLINICA P4',
+    'FLORESTA EM',
+    'FLORESTA P3',
+    'AVILA ADULT',
+    'AVILA PEDT',
+    'SANATRIX',
+    'VENE CHACAO',
+    'VENE ALTAMIRA',
+    'VENE CANDELARIA',
+    'FLORIDA',
+    'CCS S1',
+    'CCS S2',
+    'FENIX',
+    'OFICENTRO 1',
+    'OFICENTRO 2',
+]
+
 MOTORIZADOS_CONFIG = {
     'Eduard': {'code': 'ED', 'bg': '#2563eb', 'color': '#ffffff'},
     'Freduard': {'code': 'FR', 'bg': '#7c3aed', 'color': '#ffffff'},
@@ -36,7 +100,7 @@ MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE
+# BASE DE DATOS Y AUTO-SINCRONIZACIÓN
 # ---------------------------------------------------------
 def get_db_connection():
   conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -47,10 +111,6 @@ def get_db_connection():
 def init_db(force_reset=False):
   conn = get_db_connection()
   cursor = conn.cursor()
-
-  # Si se solicita reset o la tabla no existe, recreamos la estructura
-  if force_reset:
-    cursor.execute('DROP TABLE IF EXISTS maquinas')
 
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS maquinas (
@@ -70,73 +130,16 @@ def init_db(force_reset=False):
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   total_registros = cursor.fetchone()[0]
 
-  # Carga de las 61 máquinas reales proporcionadas
-  if total_registros == 0 or force_reset:
+  # Forzar actualización si la cantidad no coincide con las 61 máquinas
+  if total_registros != len(LISTA_MAESTRA_61) or force_reset:
     cursor.execute('DELETE FROM maquinas')
 
-    sample_locations = [
-        ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
-        ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
-        ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0, ''),
-        ('UCV ING', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
-        ('UCV COMP', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
-        ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0, ''),
-        ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
-        ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
-        ('UCAB MEZ', 'Freduard', 0, 1, 0, 0, 0, 0, ''),
-        ('UCAB M3', 'Freduard', 0, 0, 1, 0, 0, 0, ''),
-        ('USM', 'Alejandro', 1, 0, 1, 0, 1, 0, ''),
-        ('MONTAÑA', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
-        ('EURO S1', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
-        ('EURO S2', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
-        ('TAMACO', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
-        ('TAMACA', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
-        ('HUMBOLDT', 'Alejandro', 1, 0, 0, 0, 0, 0, ''),
-        ('GOLD DATA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
-        ('PAGO DIRECTO', 'Gustavo', 1, 0, 1, 0, 1, 0, ''),
-        ('CUBITT', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
-        ('KURIOS', 'Eduard', 0, 0, 0, 0, 1, 0, ''),
-        ('CASHEA P9', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
-        ('CASHEA P18', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
-        ('DICAM', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
-        ('FISA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
-        ('DOMESA', 'Eduard', 1, 1, 1, 1, 1, 0, ''),
-        ('TU GRUERO', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
-        ('UNION RADIO', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
-        ('FORUM P7', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
-        ('FORUM P15', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
-        ('BANGENTE', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
-        ('PROVINCIAL', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
-        ('TRANRED', 'Eduard', 0, 0, 1, 0, 0, 0, ''),
-        ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
-        ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
-        ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0, ''),
-        ('ADROMEDA', 'Freduard', 1, 0, 0, 1, 0, 0, ''),
-        ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
-        ('TIO AMMI 1', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
-        ('TIO AMMI 2', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
-        ('RS1 RECEP', 'Gustavo', 1, 0, 0, 0, 1, 0, ''),
-        ('RS2 COMED', 'Gustavo', 0, 1, 0, 1, 0, 0, ''),
-        ('WECONNECT', 'Alejandro', 0, 0, 1, 0, 1, 0, ''),
-        ('CEMENTERIO', 'Freduard', 1, 0, 1, 0, 0, 0, ''),
-        ('HEBRAICA', 'Freduard', 0, 1, 0, 1, 0, 0, ''),
-        ('POLICLINICA P3', 'Eduard', 1, 0, 1, 0, 1, 0, ''),
-        ('POLICLINICA P4', 'Eduard', 1, 0, 1, 0, 1, 0, ''),
-        ('FLORESTA EM', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
-        ('FLORESTA P3', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
-        ('AVILA ADULT', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
-        ('AVILA PEDT', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
-        ('SANATRIX', 'Freduard', 0, 1, 0, 1, 0, 0, ''),
-        ('VENE CHACAO', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
-        ('VENE ALTAMIRA', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
-        ('VENE CANDELARIA', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
-        ('FLORIDA', 'Gustavo', 0, 0, 1, 0, 1, 0, ''),
-        ('CCS S1', 'Alejandro', 1, 0, 0, 1, 0, 0, ''),
-        ('CCS S2', 'Alejandro', 0, 1, 0, 0, 1, 0, ''),
-        ('FENIX', 'Freduard', 1, 0, 1, 0, 0, 0, ''),
-        ('OFICENTRO 1', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
-        ('OFICENTRO 2', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
-    ]
+    default_motos = ['Eduard', 'Freduard', 'Alejandro', 'Gustavo']
+    sample_locations = []
+
+    for idx, nombre in enumerate(LISTA_MAESTRA_61):
+      assigned_moto = default_motos[idx % len(default_motos)]
+      sample_locations.append((nombre, assigned_moto, 0, 0, 0, 0, 0, 0, ''))
 
     cursor.executemany(
         """
@@ -158,6 +161,17 @@ def cargar_maquinas():
   df = pd.read_sql_query('SELECT * FROM maquinas ORDER BY id ASC', conn)
   conn.close()
   return df
+
+
+def actualizar_dia_db(m_id, columna_dia, nuevo_valor):
+  conn = get_db_connection()
+  cursor = conn.cursor()
+  val_int = 1 if nuevo_valor else 0
+  cursor.execute(
+      f'UPDATE maquinas SET {columna_dia}=? WHERE id=?', (val_int, m_id)
+  )
+  conn.commit()
+  conn.close()
 
 
 def agregar_maquina(
@@ -220,32 +234,20 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS
+# ESTILOS CSS Y COMPACTACIÓN DE CHECKBOXES
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    [data-testid="stHeader"] {
-        background-color: transparent !important;
-        z-index: 100000 !important;
-    }
-    [data-testid="stSidebarCollapseButton"], 
-    [data-testid="collapsedControl"] {
-        visibility: visible !important;
-        display: block !important;
-        color: #f8fafc !important;
-        background-color: #1e293b !important;
-        border-radius: 6px !important;
-    }
+    [data-testid="stHeader"] { background-color: transparent !important; z-index: 100000 !important; }
     
     .block-container {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.2rem !important;
-        padding-left: 0.4rem !important;
-        padding-right: 0.4rem !important;
+        padding-top: 0.3rem !important;
+        padding-bottom: 0.1rem !important;
+        padding-left: 0.3rem !important;
+        padding-right: 0.3rem !important;
         max-width: 100% !important;
     }
     
@@ -269,16 +271,8 @@ st.markdown(
         font-weight: bold;
         font-size: 0.75rem;
     }
-    .live-title {
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #f1f5f9;
-    }
-    .live-time {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #38bdf8;
-    }
+    .live-title { font-size: 1.05rem; font-weight: 800; color: #f1f5f9; }
+    .live-time { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
     
     .legend-box {
         background-color: #1e293b;
@@ -292,77 +286,51 @@ st.markdown(
         align-items: center;
         gap: 10px;
     }
-    .legend-item {
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #e2e8f0;
-    }
+    .legend-item { display: inline-flex; align-items: center; font-size: 0.75rem; font-weight: 700; color: #e2e8f0; }
     .moto-badge {
         display: inline-block;
-        padding: 1px 5px;
+        padding: 1px 4px;
         border-radius: 4px;
         font-weight: 900;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         text-align: center;
-        min-width: 22px;
-        margin-right: 3px;
+        min-width: 20px;
     }
     
-    .tv-container {
-        width: 100%;
-        background-color: #1e293b;
-        border-radius: 6px;
-        padding: 2px;
-        border: 1px solid #334155;
-    }
-    .tv-table {
-        width: 100%;
-        border-collapse: collapse;
-        color: #f8fafc;
-        font-family: 'Segoe UI', Arial, sans-serif;
-    }
-    .tv-table th {
+    /* Estilos compactos para las filas interactivas */
+    .table-header {
         background-color: #0f172a;
         color: #38bdf8;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 800;
-        text-transform: uppercase;
-        padding: 0.25rem 0.2rem;
+        padding: 4px 2px;
         border-bottom: 2px solid #334155;
-        text-align: left;
-    }
-    .tv-table th.center-header {
         text-align: center;
     }
     
-    .tv-table td {
-        padding: 0.12rem 0.25rem !important;
-        border-bottom: 1px solid #334155;
-        font-size: 0.78rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        vertical-align: middle;
-        line-height: 1.1;
-        white-space: nowrap;
-    }
-    .tv-table tr:nth-child(even) { background-color: #162032; }
-    
-    .day-pill {
-        display: inline-flex;
-        width: 18px;
-        height: 18px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 3px;
+    .row-location {
+        font-size: 0.76rem;
         font-weight: 800;
-        font-size: 0.65rem;
-        background-color: #0284c7;
-        color: #ffffff;
+        color: #ffffff !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-top: 4px;
     }
-    .day-pill-sat { background-color: #7c3aed; }
-    .day-empty { color: #475569; font-weight: 400; font-size: 0.7rem; }
+    
+    /* Personalización de los checkboxes de Streamlit para TV */
+    div[data-testid="stCheckbox"] {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: -4px;
+    }
+    div[data-testid="stCheckbox"] > label { display: none; }
+    div[data-testid="stCheckbox"] input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer;
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -373,28 +341,29 @@ st.markdown(
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
-    'Seleccionar Vista:', ['📱 Tablero Multi-Columna', '⚙️ Panel de Control']
+    'Seleccionar Vista:', ['📱 Tablero Interactivo TV', '⚙️ Panel de Control']
 )
 
 
 # ---------------------------------------------------------
-# TABLERO MULTI-COLUMNA EN VIVO
+# TABLERO INTERACTIVO EN TIEMPO REAL
 # ---------------------------------------------------------
-@st.fragment(run_every=10)
-def renderizar_tablero_vertical():
+def renderizar_tablero_interactivo():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
+  # Header
   st.markdown(
       f"""
     <div class="live-header-vertical">
-        <div><span class="live-badge">● EN VIVO</span> <span class="live-title">PROGRAMACIÓN DE RECARGA</span></div>
+        <div><span class="live-badge">● EN VIVO</span> <span class="live-title">PROGRAMACIÓN DE RECARGA INTERACTIVA</span></div>
         <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #94a3b8;">({fecha_actual})</span></div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
+  # Leyenda
   legend_html = '<div class="legend-box">'
   for nombre, cfg in MOTORIZADOS_CONFIG.items():
     legend_html += f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
@@ -404,41 +373,9 @@ def renderizar_tablero_vertical():
   df_maquinas = cargar_maquinas()
   total_registros = len(df_maquinas)
 
-  # Si hay más de 36 registros se divide en 3 columnas
-  if total_registros <= 36:
-    num_cols = 2
-  else:
-    num_cols = 3
-
+  # Dividir en 3 columnas verticales paralelas
+  num_cols = 3
   cols_st = st.columns(num_cols)
-
-  def get_cell(active, is_sat=False):
-    if active:
-      cls = 'day-pill day-pill-sat' if is_sat else 'day-pill'
-      return f'<span class="{cls}">✓</span>'
-    return '<span class="day-empty">-</span>'
-
-  def get_moto_badge(motorizado_nombre):
-    cfg = MOTORIZADOS_CONFIG.get(
-        motorizado_nombre, MOTORIZADOS_CONFIG['Sin Asignar']
-    )
-    return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
-
-  def generar_tabla_html(sub_df):
-    html_rows = ''
-    for _, m in sub_df.iterrows():
-      badge_moto = get_moto_badge(m['motorizado'])
-      c_l = get_cell(m['lunes'])
-      c_m = get_cell(m['martes'])
-      c_x = get_cell(m['miercoles'])
-      c_j = get_cell(m['jueves'])
-      c_v = get_cell(m['viernes'])
-      c_s = get_cell(m['sabado'], is_sat=True)
-
-      html_rows += f'<tr><td style="font-weight: 800; color: #ffffff !important;">{m["nombre"]}</td><td style="text-align: center;">{badge_moto}</td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
-
-    return f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 44%;">UBICACIÓN</th><th class="center-header" style="width: 14%;">RESP.</th><th class="center-header" style="width: 7%;">L</th><th class="center-header" style="width: 7%;">M</th><th class="center-header" style="width: 7%;">X</th><th class="center-header" style="width: 7%;">J</th><th class="center-header" style="width: 7%;">V</th><th class="center-header" style="width: 7%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
-
   chunk_size = (total_registros + num_cols - 1) // num_cols
 
   for i in range(num_cols):
@@ -447,18 +384,79 @@ def renderizar_tablero_vertical():
     sub_df = df_maquinas.iloc[start_idx:end_idx]
 
     with cols_st[i]:
-      if not sub_df.empty:
-        st.markdown(generar_tabla_html(sub_df), unsafe_allow_html=True)
+      # Encabezado de la columna
+      h_loc, h_resp, h_l, h_m, h_x, h_j, h_v, h_s = st.columns(
+          [0.36, 0.14, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08]
+      )
+      h_loc.markdown(
+          '<div class="table-header" style="text-align:left;">UBICACIÓN</div>',
+          unsafe_allow_html=True,
+      )
+      h_resp.markdown(
+          '<div class="table-header">RESP.</div>', unsafe_allow_html=True
+      )
+      h_l.markdown('<div class="table-header">L</div>', unsafe_allow_html=True)
+      h_m.markdown('<div class="table-header">M</div>', unsafe_allow_html=True)
+      h_x.markdown('<div class="table-header">X</div>', unsafe_allow_html=True)
+      h_j.markdown('<div class="table-header">J</div>', unsafe_allow_html=True)
+      h_v.markdown('<div class="table-header">V</div>', unsafe_allow_html=True)
+      h_s.markdown('<div class="table-header">S</div>', unsafe_allow_html=True)
+
+      # Filas con Checkboxes Clickeables
+      for _, row in sub_df.iterrows():
+        m_id = row['id']
+        c_loc, c_resp, c_l, c_m, c_x, c_j, c_v, c_s = st.columns(
+            [0.36, 0.14, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08]
+        )
+
+        cfg = MOTORIZADOS_CONFIG.get(
+            row['motorizado'], MOTORIZADOS_CONFIG['Sin Asignar']
+        )
+        badge_html = f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
+
+        c_loc.markdown(
+            f'<div class="row-location" title="{row["nombre"]}">{row["nombre"]}</div>',
+            unsafe_allow_html=True,
+        )
+        c_resp.markdown(
+            f'<div style="text-align:center; padding-top:2px;">{badge_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Recuadros interactivos por cada día
+        dias = [
+            ('lunes', c_l),
+            ('martes', c_m),
+            ('miercoles', c_x),
+            ('jueves', c_j),
+            ('viernes', c_v),
+            ('sabado', c_s),
+        ]
+
+        for dia_col, col_obj in dias:
+          key_chk = f'chk_{m_id}_{dia_col}'
+          val_actual = bool(row[dia_col])
+
+          # Al hacer clic en el recuadro, guarda automáticamente en la BD
+          chk = col_obj.checkbox(
+              label='',
+              value=val_actual,
+              key=key_chk,
+              label_visibility='collapsed',
+          )
+          if chk != val_actual:
+            actualizar_dia_db(m_id, dia_col, chk)
+            st.rerun()
 
 
 # ---------------------------------------------------------
 # VISTAS PRINCIPALES
 # ---------------------------------------------------------
-if modo == '📱 Tablero Multi-Columna':
-  renderizar_tablero_vertical()
+if modo == '📱 Tablero Interactivo TV':
+  renderizar_tablero_interactivo()
 
 elif modo == '⚙️ Panel de Control':
-  st.title('⚙️ Panel de Gestión')
+  st.title('⚙️ Panel de Gestión de Máquinas')
   st.markdown('---')
 
   pin_ingresado = st.sidebar.text_input(
@@ -466,17 +464,15 @@ elif modo == '⚙️ Panel de Control':
   )
 
   if pin_ingresado != '1234':
-    st.warning('🔒 Ingrese la clave de supervisor correcta para editar.')
+    st.warning('🔒 Ingrese la clave de supervisor para gestionar datos.')
   else:
-    st.success('🔓 Acceso concedido como Supervisor.')
+    st.success('🔓 Acceso concedido.')
 
-    if st.sidebar.button('🔄 Restablecer Carga Completa (61)'):
-      with st.spinner(
-          '⏳ Cargando lista completa de 61 máquinas en la base de datos...'
-      ):
-        time.sleep(0.5)
+    if st.sidebar.button('🔄 Forzar Carga de 61 Máquinas Maestras'):
+      with st.spinner('⏳ Restableciendo lista de 61 máquinas...'):
+        time.sleep(0.4)
         init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida con las 61 máquinas!')
+      st.sidebar.success('¡Base de datos restablecida con 61 máquinas!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
@@ -489,9 +485,9 @@ elif modo == '⚙️ Panel de Control':
             'Motorizado Asignado:', MOTORIZADOS_DISPONIBLES, index=0
         )
 
-        st.write('**Días de Recarga:**')
+        st.write('**Días de Recarga Iniciales:**')
         c_l, c_m, c_x, c_j, c_v, c_s = st.columns(6)
-        l_val = c_l.checkbox('L', value=True)
+        l_val = c_l.checkbox('L', value=False)
         m_val = c_m.checkbox('M', value=False)
         x_val = c_x.checkbox('X', value=False)
         j_val = c_j.checkbox('J', value=False)
@@ -502,25 +498,23 @@ elif modo == '⚙️ Panel de Control':
 
         if btn_guardar:
           if nombre_nuevo.strip():
-            with st.spinner(f"⏳ Guardando '{nombre_nuevo}'..."):
-              time.sleep(0.3)
-              agregar_maquina(
-                  nombre_nuevo,
-                  moto_nuevo,
-                  l_val,
-                  m_val,
-                  x_val,
-                  j_val,
-                  v_val,
-                  s_val,
-              )
-            st.success(f"Ubicación '{nombre_nuevo}' guardada con éxito.")
+            agregar_maquina(
+                nombre_nuevo,
+                moto_nuevo,
+                l_val,
+                m_val,
+                x_val,
+                j_val,
+                v_val,
+                s_val,
+            )
+            st.success(f"Ubicación '{nombre_nuevo}' guardada.")
             st.rerun()
           else:
             st.error('El nombre no puede estar vacío.')
 
     with col_tabla:
-      st.subheader('📋 Modificar / Asignar Existentes')
+      st.subheader('📋 Asignaciones y Nombres')
       df = cargar_maquinas()
 
       for index, row in df.iterrows():
@@ -573,25 +567,21 @@ elif modo == '⚙️ Panel de Control':
               btn_eliminar = st.form_submit_button('🗑️ Eliminar')
 
             if btn_actualizar:
-              with st.spinner(f"⏳ Actualizando '{e_nombre}'..."):
-                time.sleep(0.3)
-                actualizar_maquina(
-                    row['id'],
-                    e_nombre,
-                    e_moto,
-                    e_l,
-                    e_m,
-                    e_x,
-                    e_j,
-                    e_v,
-                    e_s,
-                )
+              actualizar_maquina(
+                  row['id'],
+                  e_nombre,
+                  e_moto,
+                  e_l,
+                  e_m,
+                  e_x,
+                  e_j,
+                  e_v,
+                  e_s,
+              )
               st.success('Cambios guardados.')
               st.rerun()
 
             if btn_eliminar:
-              with st.spinner('⏳ Eliminando registro...'):
-                time.sleep(0.3)
-                eliminar_maquina(row['id'])
+              eliminar_maquina(row['id'])
               st.warning('Registro eliminado.')
               st.rerun()
