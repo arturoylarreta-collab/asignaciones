@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseñado para Pantalla TV 43" (Sin parpadeos / Actualización fluida)
+Diseñado para Pantalla TV 43" (Vista Compacta - 36 filas en 1 sola pantalla)
 """
 
 import os
@@ -22,6 +22,15 @@ st.set_page_config(
 
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
 
+# LISTA OFICIAL DE MOTORIZADOS
+MOTORIZADOS_DISPONIBLES = [
+    'Eduard',
+    'Freduard',
+    'Alejandro',
+    'Gustavo',
+    'Sin Asignar',
+]
+
 
 # ---------------------------------------------------------
 # BASE DE DATOS SQLITE
@@ -32,20 +41,23 @@ def get_db_connection():
   return conn
 
 
-def init_db():
+def init_db(force_reset=False):
   conn = get_db_connection()
   cursor = conn.cursor()
+
+  if force_reset:
+    cursor.execute('DROP TABLE IF EXISTS maquinas')
+
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS maquinas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
-            prioridad TEXT NOT NULL,
             motorizado TEXT DEFAULT 'Sin Asignar',
-            lunes INTEGER DEFAULT 1,
-            martes INTEGER DEFAULT 1,
-            miercoles INTEGER DEFAULT 1,
-            jueves INTEGER DEFAULT 1,
-            viernes INTEGER DEFAULT 1,
+            lunes INTEGER DEFAULT 0,
+            martes INTEGER DEFAULT 0,
+            miercoles INTEGER DEFAULT 0,
+            jueves INTEGER DEFAULT 0,
+            viernes INTEGER DEFAULT 0,
             sabado INTEGER DEFAULT 0,
             observaciones TEXT DEFAULT ''
         )
@@ -53,98 +65,51 @@ def init_db():
 
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   if cursor.fetchone()[0] == 0:
-    sample_data = [
-        (
-            'Provincial Call Center',
-            'ALTA',
-            'Carlos Mendoza',
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Ruta centro',
-        ),
-        (
-            'Robin',
-            'MEDIA',
-            'Roberto Gómez',
-            1,
-            0,
-            1,
-            0,
-            0,
-            0,
-            'Zona norte',
-        ),
-        (
-            'UCAB Labs - M3',
-            'ALTA',
-            'Juan Pérez',
-            0,
-            1,
-            0,
-            0,
-            0,
-            0,
-            'Prioridad VIP',
-        ),
-        (
-            'Bangente Cubo Negro',
-            'ALTA',
-            'Carlos Mendoza',
-            1,
-            0,
-            1,
-            0,
-            0,
-            0,
-            'Ruta este',
-        ),
-        (
-            'Cashea Piso 9 y 18',
-            'MEDIA',
-            'Roberto Gómez',
-            0,
-            0,
-            1,
-            0,
-            1,
-            0,
-            'Atención continua',
-        ),
-        (
-            'Sanatrix',
-            'BAJA',
-            'Sin Asignar',
-            1,
-            0,
-            0,
-            1,
-            0,
-            0,
-            'Mantenimiento',
-        ),
-        (
-            'Venemergencia Chacao',
-            'ALTA',
-            'Juan Pérez',
-            1,
-            0,
-            0,
-            1,
-            0,
-            0,
-            'Urgente',
-        ),
+    sample_locations = [
+        ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0),
+        ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0),
+        ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0),
+        ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0),
+        ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0),
+        ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0),
+        ('UCAB MEZ', 'Freduard', 0, 1, 0, 0, 0, 0),
+        ('UCAB M3', 'Freduard', 0, 0, 1, 0, 0, 0),
+        ('USM', 'Alejandro', 1, 0, 1, 0, 1, 0),
+        ('MONTAÑA', 'Alejandro', 0, 0, 0, 1, 0, 0),
+        ('EURO S1', 'Gustavo', 1, 0, 0, 1, 0, 0),
+        ('EURO S2', 'Gustavo', 0, 1, 0, 0, 1, 0),
+        ('TAMACO', 'Eduard', 0, 1, 0, 0, 0, 0),
+        ('TAMACA', 'Eduard', 0, 1, 0, 0, 0, 0),
+        ('HUMBOLDT', 'Alejandro', 1, 0, 0, 0, 0, 0),
+        ('GOLD DATA', 'Gustavo', 0, 0, 1, 0, 0, 0),
+        ('PAGO DIRECTO', 'Gustavo', 1, 0, 1, 0, 1, 0),
+        ('CUBITT', 'Alejandro', 0, 1, 0, 1, 0, 0),
+        ('KURIOS', 'Eduard', 0, 0, 0, 0, 1, 0),
+        ('CASHEA P9', 'Freduard', 1, 0, 1, 0, 1, 0),
+        ('CASHEA P18', 'Freduard', 1, 0, 1, 0, 1, 0),
+        ('DICAM', 'Alejandro', 0, 1, 0, 0, 0, 0),
+        ('FISA', 'Gustavo', 0, 0, 1, 0, 0, 0),
+        ('DOMESA', 'Eduard', 1, 1, 1, 1, 1, 0),
+        ('TU GRUERO', 'Alejandro', 0, 0, 0, 1, 0, 0),
+        ('UNION RADIO', 'Gustavo', 1, 0, 0, 1, 0, 0),
+        ('FORUM P7', 'Freduard', 0, 1, 0, 0, 1, 0),
+        ('FORUM P15', 'Freduard', 0, 1, 0, 0, 1, 0),
+        ('BANGENTE', 'Alejandro', 1, 0, 1, 0, 0, 0),
+        ('PROVINCIAL', 'Gustavo', 1, 0, 0, 0, 0, 0),
+        ('TRANRED', 'Eduard', 0, 0, 1, 0, 0, 0),
+        ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0),
+        ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0),
+        ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0),
+        ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0),
+        ('ASIMETRIX', 'Freduard', 1, 0, 0, 0, 0, 0),
     ]
+
     cursor.executemany(
         """
-            INSERT INTO maquinas (nombre, prioridad, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        sample_data,
+        sample_locations,
     )
     conn.commit()
   conn.close()
@@ -162,7 +127,6 @@ def cargar_maquinas():
 
 def agregar_maquina(
     nombre,
-    prioridad,
     motorizado,
     lunes,
     martes,
@@ -175,12 +139,11 @@ def agregar_maquina(
   cursor = conn.cursor()
   cursor.execute(
       """
-        INSERT INTO maquinas (nombre, prioridad, motorizado, lunes, martes, miercoles, jueves, viernes, sabado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """,
       (
           nombre,
-          prioridad,
           motorizado,
           int(lunes),
           int(martes),
@@ -197,7 +160,6 @@ def agregar_maquina(
 def actualizar_maquina(
     m_id,
     nombre,
-    prioridad,
     motorizado,
     lunes,
     martes,
@@ -210,12 +172,11 @@ def actualizar_maquina(
   cursor = conn.cursor()
   cursor.execute(
       """
-        UPDATE maquinas SET nombre=?, prioridad=?, motorizado=?, lunes=?, martes=?, miercoles=?, jueves=?, viernes=?, sabado=?
+        UPDATE maquinas SET nombre=?, motorizado=?, lunes=?, martes=?, miercoles=?, jueves=?, viernes=?, sabado=?
         WHERE id=?
     """,
       (
           nombre,
-          prioridad,
           motorizado,
           int(lunes),
           int(martes),
@@ -239,7 +200,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS
+# ESTILOS CSS COMPACTOS PARA TV DE 43" (36 FILAS)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -247,13 +208,23 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    
+    /* Reducción de márgenes globales de Streamlit */
+    .block-container {
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        max-width: 100% !important;
+    }
+    
     .stApp { background-color: #0f172a; color: #f8fafc; }
     
     .tv-container {
         width: 100%;
         background-color: #1e293b;
-        border-radius: 12px;
-        padding: 10px;
+        border-radius: 8px;
+        padding: 4px;
         border: 1px solid #334155;
     }
     .tv-table {
@@ -265,63 +236,48 @@ st.markdown(
     .tv-table th {
         background-color: #0f172a;
         color: #38bdf8;
-        font-size: 1.4rem;
+        font-size: 0.95rem;
         font-weight: 800;
         text-transform: uppercase;
-        padding: 1.1rem;
-        border-bottom: 3px solid #334155;
+        padding: 0.3rem 0.5rem;
+        border-bottom: 2px solid #334155;
         text-align: left;
     }
     .tv-table th.day-header {
         text-align: center;
-        width: 7%;
-        font-size: 1.5rem;
+        width: 6%;
+        font-size: 1rem;
         color: #f8fafc;
     }
     .tv-table td {
-        padding: 1rem;
+        padding: 0.15rem 0.5rem !important;
         border-bottom: 1px solid #334155;
-        font-size: 1.35rem;
-        font-weight: 600;
+        font-size: 0.85rem;
+        font-weight: 700;
         vertical-align: middle;
+        line-height: 1.1;
     }
     .tv-table tr:nth-child(even) { background-color: #1a2436; }
     
-    .prio-badge {
-        display: inline-block;
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
-        font-weight: 800;
-        font-size: 1.1rem;
-        text-align: center;
-        width: 100%;
-    }
-    .prio-ALTA { background-color: #dc2626; color: #ffffff; }
-    .prio-MEDIA { background-color: #d97706; color: #ffffff; }
-    .prio-BAJA { background-color: #16a34a; color: #ffffff; }
-    .prio-MANTENIMIENTO { background-color: #475569; color: #cbd5e1; }
-    
     .day-pill {
         display: inline-flex;
-        width: 42px;
-        height: 42px;
+        width: 22px;
+        height: 22px;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 4px;
         font-weight: 800;
-        font-size: 1.2rem;
+        font-size: 0.75rem;
         background-color: #0284c7;
         color: #ffffff;
-        box-shadow: 0 0 10px rgba(2, 132, 199, 0.6);
     }
     .day-pill-sat {
         background-color: #7c3aed;
-        box-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
     }
     .day-empty {
         color: #475569;
         font-weight: 400;
-        font-size: 1.4rem;
+        font-size: 0.85rem;
     }
     
     .live-header {
@@ -329,18 +285,18 @@ st.markdown(
         justify-content: space-between;
         align-items: center;
         background-color: #1e293b;
-        padding: 1rem 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1rem;
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.4rem;
         border: 1px solid #334155;
     }
     .live-badge {
         background-color: #ef4444;
         color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
         font-weight: bold;
-        font-size: 1.1rem;
+        font-size: 0.85rem;
     }
 </style>
 """,
@@ -369,10 +325,10 @@ def renderizar_tablero_tv():
     <div class="live-header">
         <div>
             <span class="live-badge">● EN VIVO</span>
-            <span style="font-size: 1.8rem; font-weight: 800; margin-left: 10px; color: #f1f5f9;">PROGRAMACIÓN SEMANAL DE RECARGA</span>
+            <span style="font-size: 1.2rem; font-weight: 800; margin-left: 8px; color: #f1f5f9;">PROGRAMACIÓN SEMANAL DE RECARGA</span>
         </div>
-        <div style="font-size: 1.8rem; font-weight: 700; color: #38bdf8;">
-            ⏱️ {hora_actual} <span style="font-size: 1.1rem; color: #94a3b8;">({fecha_actual})</span>
+        <div style="font-size: 1.2rem; font-weight: 700; color: #38bdf8;">
+            ⏱️ {hora_actual} <span style="font-size: 0.9rem; color: #94a3b8;">({fecha_actual})</span>
         </div>
     </div>
     """,
@@ -384,7 +340,7 @@ def renderizar_tablero_tv():
   def get_cell(active, code, is_sat=False):
     if active:
       cls = 'day-pill day-pill-sat' if is_sat else 'day-pill'
-      return f'<span class="{cls}">✓ {code}</span>'
+      return f'<span class="{cls}">✓</span>'
     return '<span class="day-empty">-</span>'
 
   html_rows = ''
@@ -396,9 +352,9 @@ def renderizar_tablero_tv():
     c_v = get_cell(m['viernes'], 'V')
     c_s = get_cell(m['sabado'], 'S', is_sat=True)
 
-    html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td><span class="prio-badge prio-{m["prioridad"]}">{m["prioridad"]}</span></td><td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m["motorizado"]}</span></td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
+    html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m["motorizado"]}</span></td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
 
-  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 30%;">Máquina / Ubicación</th><th style="width: 14%;">Prioridad</th><th style="width: 22%;">Motorizado Asignado</th><th class="day-header">L</th><th class="day-header">M</th><th class="day-header">X</th><th class="day-header">J</th><th class="day-header">V</th><th class="day-header">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
+  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 44%;">MÁQUINA / UBICACIÓN</th><th style="width: 20%;">MOTORIZADO ASIGNADO</th><th class="day-header">L</th><th class="day-header">M</th><th class="day-header">X</th><th class="day-header">J</th><th class="day-header">V</th><th class="day-header">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
 
   st.markdown(tabla_completa, unsafe_allow_html=True)
 
@@ -422,17 +378,19 @@ elif modo == '⚙️ Panel de Control (Jefes)':
   else:
     st.success('🔓 Acceso concedido como Supervisor.')
 
+    if st.sidebar.button('🔄 Cargar Lista Completa de Ubicaciones'):
+      init_db(force_reset=True)
+      st.sidebar.success('¡Base de datos restablecida con la nueva tabla!')
+      st.rerun()
+
     col_form, col_tabla = st.columns([1, 2])
 
     with col_form:
-      st.subheader('➕ Agregar Nueva Máquina')
+      st.subheader('➕ Agregar Nueva Ubicación')
       with st.form('form_agregar', clear_on_submit=True):
         nombre_nuevo = st.text_input('Máquina / Ubicación:')
-        prio_nueva = st.selectbox(
-            'Prioridad:', ['ALTA', 'MEDIA', 'BAJA', 'MANTENIMIENTO'], index=1
-        )
-        moto_nuevo = st.text_input(
-            'Motorizado Asignado:', value='Sin Asignar'
+        moto_nuevo = st.selectbox(
+            'Motorizado Asignado:', MOTORIZADOS_DISPONIBLES, index=0
         )
 
         st.write('**Días de Recarga:**')
@@ -444,12 +402,11 @@ elif modo == '⚙️ Panel de Control (Jefes)':
         v_val = c_v.checkbox('V', value=False)
         s_val = c_s.checkbox('S', value=False)
 
-        btn_guardar = st.form_submit_button('💾 Guardar Máquina')
+        btn_guardar = st.form_submit_button('💾 Guardar Ubicación')
         if btn_guardar:
           if nombre_nuevo.strip():
             agregar_maquina(
                 nombre_nuevo,
-                prio_nueva,
                 moto_nuevo,
                 l_val,
                 m_val,
@@ -469,22 +426,22 @@ elif modo == '⚙️ Panel de Control (Jefes)':
 
       for index, row in df.iterrows():
         with st.expander(
-            f"📌 {row['nombre']} — Prioridad: {row['prioridad']} | Motorizado:"
-            f" {row['motorizado']}"
+            f"📌 {row['nombre']} | Motorizado: {row['motorizado']}"
         ):
           with st.form(f"form_edit_{row['id']}"):
             e_nombre = st.text_input('Ubicación:', value=row['nombre'])
-            e_prio = st.selectbox(
-                'Prioridad:',
-                ['ALTA', 'MEDIA', 'BAJA', 'MANTENIMIENTO'],
-                index=[
-                    'ALTA',
-                    'MEDIA',
-                    'BAJA',
-                    'MANTENIMIENTO',
-                ].index(row['prioridad']),
+
+            idx_moto = (
+                MOTORIZADOS_DISPONIBLES.index(row['motorizado'])
+                if row['motorizado'] in MOTORIZADOS_DISPONIBLES
+                else 4
             )
-            e_moto = st.text_input('Motorizado:', value=row['motorizado'])
+            e_moto = st.selectbox(
+                'Motorizado:',
+                MOTORIZADOS_DISPONIBLES,
+                index=idx_moto,
+                key=f"moto_{row['id']}",
+            )
 
             st.write('**Días Activos de Recarga:**')
             d1, d2, d3, d4, d5, d6 = st.columns(6)
@@ -517,7 +474,6 @@ elif modo == '⚙️ Panel de Control (Jefes)':
               actualizar_maquina(
                   row['id'],
                   e_nombre,
-                  e_prio,
                   e_moto,
                   e_l,
                   e_m,
