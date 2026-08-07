@@ -20,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state='collapsed',
 )
 
-# Guardar base de datos en la carpeta temporal del servidor para evitar bloqueos
+# Base de datos en la carpeta temporal para entornos cloud
 DB_NAME = os.path.join(tempfile.gettempdir(), 'logistica_streamlit.db')
 
 
@@ -216,7 +216,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (ALTO CONTRASTE TV 43")
+# ESTILOS CSS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -360,43 +360,13 @@ if modo == '📺 Tablero TV 43"':
     v_cls = 'day-active' if m['viernes'] else ''
     s_cls = 'day-sat' if m['sabado'] else ''
 
-    dias_html = f"""
-            <span class="day-box {l_cls}">L</span>
-            <span class="day-box {m_cls}">M</span>
-            <span class="day-box {x_cls}">X</span>
-            <span class="day-box {j_cls}">J</span>
-            <span class="day-box {v_cls}">V</span>
-        """
+    dias_html = f'<span class="day-box {l_cls}">L</span><span class="day-box {m_cls}">M</span><span class="day-box {x_cls}">X</span><span class="day-box {j_cls}">J</span><span class="day-box {v_cls}">V</span>'
     sabado_html = f'<span class="day-box {s_cls}">S</span>'
 
-    html_rows += f"""
-        <tr>
-            <td style="font-weight: 800; color: #ffffff;">{m['nombre']}</td>
-            <td><span class="prio-badge prio-{m['prioridad']}">{m['prioridad']}</span></td>
-            <td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m['motorizado']}</span></td>
-            <td style="text-align: center;">{dias_html}</td>
-            <td style="text-align: center;">{sabado_html}</td>
-        </tr>
-        """
+    html_rows += f'<tr><td style="font-weight: 800; color: #ffffff;">{m["nombre"]}</td><td><span class="prio-badge prio-{m["prioridad"]}">{m["prioridad"]}</span></td><td>🛵 <span style="color: #f1f5f9; font-weight: 700;">{m["motorizado"]}</span></td><td style="text-align: center;">{dias_html}</td><td style="text-align: center;">{sabado_html}</td></tr>'
 
-  tabla_completa = f"""
-    <div class="tv-container">
-        <table class="tv-table">
-            <thead>
-                <tr>
-                    <th style="width: 28%;">Máquina / Equipo</th>
-                    <th style="width: 16%;">Prioridad</th>
-                    <th style="width: 24%;">Motorizado Asignado</th>
-                    <th style="width: 22%; text-align: center;">Días Laborales</th>
-                    <th style="width: 10%; text-align: center;">Sábado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {html_rows}
-            </tbody>
-        </table>
-    </div>
-    """
+  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 28%;">Máquina / Equipo</th><th style="width: 16%;">Prioridad</th><th style="width: 24%;">Motorizado Asignado</th><th style="width: 22%; text-align: center;">Días Laborales</th><th style="width: 10%; text-align: center;">Sábado</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
+
   st.markdown(tabla_completa, unsafe_allow_html=True)
 
 elif modo == '⚙️ Panel de Control (Jefes)':
