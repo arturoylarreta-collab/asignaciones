@@ -1,6 +1,7 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño en 2 Columnas Fijas, Optimizado para 100 Ubicaciones en TV
+Diseño Vertical Tipo Retrato (TV Orientación Teléfono)
+Lista Única Continua de 61 Ubicaciones
 """
 
 import os
@@ -12,12 +13,12 @@ import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (MODO COMPACTO)
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title='Tablero Logístico TV',
+    page_title='Tablero Logístico Vertical',
     page_icon='🚚',
-    layout='wide',
+    layout='centered',  # Centrado para mejor lectura en pantalla vertical
     initial_sidebar_state='collapsed',
 )
 
@@ -35,7 +36,7 @@ MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE
+# BASE DE DATOS SQLITE (61 MÁQUINAS)
 # ---------------------------------------------------------
 def get_db_connection():
   conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -68,31 +69,79 @@ def init_db(force_reset=False):
   cursor.execute('SELECT COUNT(*) FROM maquinas')
   total = cursor.fetchone()[0]
 
-  # Si la base de datos está vacía, genera datos de prueba
-  if total == 0:
-    motos = ['Eduard', 'Freduard', 'Alejandro', 'Gustavo']
-    sample_locations = []
-    for i in range(1, 101):
-      m_nombre = f'Ubicación {i:03d}'
-      m_resp = motos[i % len(motos)]
-      sample_locations.append((
-          m_nombre,
-          m_resp,
-          1 if i % 2 == 0 else 0,
-          1 if i % 3 == 0 else 0,
-          1 if i % 4 == 0 else 0,
-          1 if i % 5 == 0 else 0,
-          1 if i % 2 != 0 else 0,
-          1 if i % 6 == 0 else 0,
-          '',
-      ))
+  if total == 0 or force_reset:
+    cursor.execute('DELETE FROM maquinas')
+
+    lista_real_maquinas = [
+        ('Unimet PB', 'Eduard', 1, 0, 1, 0, 0, 0, ''),
+        ('Unimet LAB', 'Eduard', 0, 1, 0, 1, 0, 0, ''),
+        ('Unimet EM', 'Eduard', 1, 0, 0, 0, 1, 0, ''),
+        ('UCV ING', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('UCV COMP', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
+        ('UCAB CONVERT', 'Freduard', 0, 0, 1, 1, 0, 0, ''),
+        ('UCAB LAB', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('UCAB P1', 'Freduard', 1, 0, 0, 0, 0, 0, ''),
+        ('UCAB MEZ', 'Freduard', 0, 1, 0, 0, 0, 0, ''),
+        ('UCAB M3', 'Freduard', 0, 0, 1, 0, 0, 0, ''),
+        ('USM', 'Alejandro', 1, 0, 1, 0, 1, 0, ''),
+        ('MONTAÑA', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
+        ('EURO S1', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('EURO S2', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('TAMACO', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
+        ('TAMACA', 'Eduard', 0, 1, 0, 0, 0, 0, ''),
+        ('HUMBOLDT', 'Alejandro', 1, 0, 0, 0, 0, 0, ''),
+        ('GOLD DATA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
+        ('PAGO DIRECTO', 'Gustavo', 1, 0, 1, 0, 1, 0, ''),
+        ('CUBITT', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
+        ('KURIOS', 'Eduard', 0, 0, 0, 0, 1, 0, ''),
+        ('CASHEA P9', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('CASHEA P18', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('DICAM', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
+        ('FISA', 'Gustavo', 0, 0, 1, 0, 0, 0, ''),
+        ('DOMESA', 'Eduard', 1, 1, 1, 1, 1, 0, ''),
+        ('TU GRUERO', 'Alejandro', 0, 0, 0, 1, 0, 0, ''),
+        ('UNION RADIO', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('FORUM P7', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('FORUM P15', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('BANGENTE', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('PROVINCIAL', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
+        ('TRANRED', 'Eduard', 0, 0, 1, 0, 0, 0, ''),
+        ('ROBIN', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('CALLCENTER DRCC', 'Gustavo', 1, 0, 0, 0, 0, 0, ''),
+        ('DUNCAN', 'Eduard', 0, 0, 0, 1, 0, 0, ''),
+        ('ADROMEDA', 'Alejandro', 1, 0, 0, 0, 1, 0, ''),
+        ('PEGASO', 'Alejandro', 0, 1, 0, 0, 0, 0, ''),
+        ('TIO AMMI 1', 'Freduard', 1, 0, 1, 0, 0, 0, ''),
+        ('TIO AMMI 2', 'Freduard', 0, 1, 0, 1, 0, 0, ''),
+        ('RS1 RECEP', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('RS2 COMED', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('WECONNECT', 'Eduard', 0, 0, 1, 0, 1, 0, ''),
+        ('CEMENTERIO', 'Alejandro', 1, 0, 0, 0, 0, 0, ''),
+        ('HEBRAICA', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('POLICLINICA P3', 'Gustavo', 1, 0, 1, 0, 0, 0, ''),
+        ('POLICLINICA P4', 'Gustavo', 0, 1, 0, 1, 0, 0, ''),
+        ('FLORESTA EM', 'Eduard', 1, 0, 0, 1, 0, 0, ''),
+        ('FLORESTA P3', 'Eduard', 0, 1, 0, 0, 1, 0, ''),
+        ('AVILA ADULT', 'Alejandro', 1, 0, 1, 0, 0, 0, ''),
+        ('AVILA PEDT', 'Alejandro', 0, 1, 0, 1, 0, 0, ''),
+        ('SANATRIX', 'Freduard', 1, 0, 1, 0, 1, 0, ''),
+        ('VENE CHACAO', 'Gustavo', 1, 0, 0, 1, 0, 0, ''),
+        ('VENE ALTAMIRA', 'Gustavo', 0, 1, 0, 0, 1, 0, ''),
+        ('VENE CANDELARIA', 'Gustavo', 1, 0, 1, 0, 0, 0, ''),
+        ('FLORIDA', 'Eduard', 0, 0, 1, 0, 1, 0, ''),
+        ('CCS S1', 'Freduard', 1, 0, 0, 1, 0, 0, ''),
+        ('CCS S2', 'Freduard', 0, 1, 0, 0, 1, 0, ''),
+        ('FENIX', 'Alejandro', 0, 0, 1, 0, 1, 0, ''),
+        ('OFICENTRO 1', 'Gustavo', 1, 0, 1, 0, 0, 0, ''),
+        ('OFICENTRO 2', 'Gustavo', 0, 1, 0, 1, 0, 0, ''),
+    ]
 
     cursor.executemany(
         """
             INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        sample_locations,
+        lista_real_maquinas,
     )
     conn.commit()
 
@@ -169,7 +218,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (LIMPIO Y DE ALTO CONTRASTE)
+# ESTILOS CSS ADAPTADOS A PANTALLA VERTICAL
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -184,29 +233,30 @@ st.markdown(
     
     .block-container {
         padding-top: 0.2rem !important;
-        padding-bottom: 0.1rem !important;
-        padding-left: 0.3rem !important;
-        padding-right: 0.3rem !important;
+        padding-bottom: 0.2rem !important;
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
         max-width: 100% !important;
     }
     
     .stApp { background-color: #0b1329; color: #f8fafc; }
     
-    /* Encabezado Principal */
+    /* Header Vertical */
     .live-header {
         background-color: #152238;
-        padding: 0.3rem 0.8rem;
+        padding: 0.4rem 0.8rem;
         border-radius: 6px;
         margin-bottom: 0.3rem;
         border: 1px solid #1e293b;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
+        gap: 4px;
     }
     .live-badge {
         background-color: #ef4444;
         color: white;
-        padding: 0.1rem 0.4rem;
+        padding: 0.1rem 0.5rem;
         border-radius: 4px;
         font-weight: 800;
         font-size: 0.75rem;
@@ -215,7 +265,7 @@ st.markdown(
         font-size: 1.1rem;
         font-weight: 800;
         color: #f8fafc;
-        margin-left: 0.5rem;
+        text-align: center;
     }
     .live-time {
         font-size: 0.85rem;
@@ -228,12 +278,13 @@ st.markdown(
         background-color: #152238;
         border: 1px solid #1e293b;
         border-radius: 6px;
-        padding: 2px 8px;
-        margin-bottom: 4px;
+        padding: 4px;
+        margin-bottom: 6px;
         display: flex;
-        justify-content: center;
+        justify-content: space-around;
         align-items: center;
-        gap: 15px;
+        flex-wrap: wrap;
+        gap: 6px;
     }
     .legend-item {
         display: inline-flex;
@@ -244,15 +295,15 @@ st.markdown(
     }
     .moto-badge {
         display: inline-block;
-        padding: 1px 5px;
+        padding: 1px 6px;
         border-radius: 3px;
         font-weight: 900;
-        font-size: 0.68rem;
+        font-size: 0.7rem;
         text-align: center;
         margin-right: 3px;
     }
     
-    /* Estructura de Tabla Ultra-Compacta para 2 Bloques */
+    /* Tabla Continua Vertical */
     .tv-container {
         width: 100%;
         background-color: #111c30;
@@ -268,28 +319,28 @@ st.markdown(
     .tv-table th {
         background-color: #0b1329;
         color: #64748b;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 800;
-        padding: 0.25rem 0.2rem;
+        padding: 0.3rem 0.3rem;
         border-bottom: 2px solid #1e293b;
         text-align: left;
     }
     .tv-table th.center-header { text-align: center; }
     
     .tv-table td {
-        padding: 0.12rem 0.3rem !important;
-        border-bottom: 1px solid #1a273e;
+        padding: 0.2rem 0.3rem !important;
+        border-bottom: 1px solid #172338;
         vertical-align: middle;
         white-space: nowrap;
     }
     .location-name {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         font-weight: 800;
         color: #ffffff !important;
     }
-    .tv-table tr:nth-child(even) { background-color: #0e172a; }
+    .tv-table tr:nth-child(even) { background-color: #0d1627; }
     
-    /* Indicadores Limpios */
+    /* Indicadores */
     .day-check { color: #38bdf8; font-weight: 900; font-size: 0.85rem; }
     .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.85rem; }
     .day-off { color: #1e293b; font-size: 0.7rem; }
@@ -299,46 +350,42 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# NAVEGACIÓN EN SIDEBAR
+# NAVEGACIÓN
 # ---------------------------------------------------------
 st.sidebar.title('🎛️ NAVEGACIÓN')
 modo = st.sidebar.radio(
-    'Seleccionar Vista:', ['📱 Tablero Multi-Columna', '⚙️ Panel de Control']
+    'Seleccionar Vista:', ['📱 Tablero Vertical', '⚙️ Panel de Control']
 )
 
 
 # ---------------------------------------------------------
-# TABLERO EN VIVO (2 BLOQUES)
+# TABLERO EN VIVO (LISTA ÚNICA VERTICAL)
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
-def renderizar_tablero_dos_bloques():
+def renderizar_tablero_vertical():
   hora_actual = datetime.now().strftime('%H:%M:%S')
   fecha_actual = datetime.now().strftime('%d/%m/%Y')
 
-  # 1. Header
+  # Header centralizado
   st.markdown(
       f"""
     <div class="live-header">
-        <div><span class="live-badge">● EN VIVO</span> <span class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</span></div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #64748b; margin-left: 5px;">({fecha_actual})</span></div>
+        <div><span class="live-badge">● EN VIVO</span></div>
+        <div class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</div>
+        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #64748b;">({fecha_actual})</span></div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-  # 2. Leyenda
+  # Leyenda
   legend_html = '<div class="legend-box">'
   for nombre, cfg in MOTORIZADOS_CONFIG.items():
     legend_html += f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
   legend_html += '</div>'
   st.markdown(legend_html, unsafe_allow_html=True)
 
-  # 3. Distribución en exactamente 2 Bloques
   df_maquinas = cargar_maquinas()
-  total_registros = len(df_maquinas)
-
-  cols_st = st.columns(2)
-  chunk_size = (total_registros + 1) // 2
 
   def get_cell(active, is_sat=False):
     if active:
@@ -352,36 +399,29 @@ def renderizar_tablero_dos_bloques():
     )
     return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
 
-  def generar_tabla_html(sub_df):
-    html_rows = ''
-    for _, m in sub_df.iterrows():
-      badge_moto = get_moto_badge(m['motorizado'])
-      c_l = get_cell(m['lunes'])
-      c_m = get_cell(m['martes'])
-      c_x = get_cell(m['miercoles'])
-      c_j = get_cell(m['jueves'])
-      c_v = get_cell(m['viernes'])
-      c_s = get_cell(m['sabado'], is_sat=True)
+  # Construcción de la tabla continua
+  html_rows = ''
+  for _, m in df_maquinas.iterrows():
+    badge_moto = get_moto_badge(m['motorizado'])
+    c_l = get_cell(m['lunes'])
+    c_m = get_cell(m['martes'])
+    c_x = get_cell(m['miercoles'])
+    c_j = get_cell(m['jueves'])
+    c_v = get_cell(m['viernes'])
+    c_s = get_cell(m['sabado'], is_sat=True)
 
-      html_rows += f'<tr><td class="location-name">{m["nombre"]}</td><td style="text-align: center;">{badge_moto}</td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
+    html_rows += f'<tr><td class="location-name">{m["nombre"]}</td><td style="text-align: center;">{badge_moto}</td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
 
-    return f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 46%;">UBICACIÓN</th><th class="center-header" style="width: 12%;">RESP.</th><th class="center-header" style="width: 7%;">L</th><th class="center-header" style="width: 7%;">M</th><th class="center-header" style="width: 7%;">X</th><th class="center-header" style="width: 7%;">J</th><th class="center-header" style="width: 7%;">V</th><th class="center-header" style="width: 7%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
+  tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 45%;">UBICACIÓN</th><th class="center-header" style="width: 13%;">RESP.</th><th class="center-header" style="width: 7%;">L</th><th class="center-header" style="width: 7%;">M</th><th class="center-header" style="width: 7%;">X</th><th class="center-header" style="width: 7%;">J</th><th class="center-header" style="width: 7%;">V</th><th class="center-header" style="width: 7%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
 
-  for i in range(2):
-    start_idx = i * chunk_size
-    end_idx = min((i + 1) * chunk_size, total_registros)
-    sub_df = df_maquinas.iloc[start_idx:end_idx]
-
-    with cols_st[i]:
-      if not sub_df.empty:
-        st.markdown(generar_tabla_html(sub_df), unsafe_allow_html=True)
+  st.markdown(tabla_completa, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
-# PANEL DE CONTROL (EDICIÓN Y ADMINISTRACIÓN)
+# PANEL DE CONTROL
 # ---------------------------------------------------------
-if modo == '📱 Tablero Multi-Columna':
-  renderizar_tablero_dos_bloques()
+if modo == '📱 Tablero Vertical':
+  renderizar_tablero_vertical()
 
 elif modo == '⚙️ Panel de Control':
   st.title('⚙️ Panel de Gestión')
@@ -396,9 +436,9 @@ elif modo == '⚙️ Panel de Control':
   else:
     st.success('🔓 Acceso concedido.')
 
-    if st.sidebar.button('🔄 Restablecer 100 Ubicaciones Pruebas'):
+    if st.sidebar.button('🔄 Cargar / Restablecer 61 Ubicaciones'):
       init_db(force_reset=True)
-      st.sidebar.success('¡Base de datos restablecida a 100 registros!')
+      st.sidebar.success('¡Base de datos restablecida!')
       st.rerun()
 
     col_form, col_tabla = st.columns([1, 2])
