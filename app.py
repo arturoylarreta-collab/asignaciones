@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Vertical Rotado por CSS
+Diseño Vertical Rotado por CSS - Ancho Completo (2 Columnas)
 """
 
 import os
@@ -11,18 +11,17 @@ import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (WIDE LAYOUT PARA ANCHO COMPLETO)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero Logístico Vertical",
     page_icon="🚚",
-    layout="centered",
+    layout="wide",  # Se cambia a wide para usar el 100% del ancho
     initial_sidebar_state="collapsed",
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit_v2.db")
 
-# Manejo seguro de secrets para evitar StreamlitSecretNotFoundError
 try:
     SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
 except Exception:
@@ -214,22 +213,35 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON ROTACIÓN Y FORMATO VERTICAL
+# ESTILOS CSS - PANTALLA COMPLETA EN 2 COLUMNAS
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    [data-testid="stHeader"] {
-        background-color: transparent !important;
-        z-index: 100000 !important;
+    /* Ocultar scrollbars globales */
+    * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
     }
-    
-    .stApp { 
-        background-color: #0b1329; 
-        color: #f8fafc; 
+    ::-webkit-scrollbar {
+        display: none !important;
+        width: 0px !important;
+        height: 0px !important;
+    }
+
+    #MainMenu, footer, header, [data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    html, body, .stApp, [data-testid="stAppViewContainer"], .main, .block-container {
+        overflow: hidden !important;
+        background-color: #0b1329 !important;
+        color: #f8fafc;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
     }
 
     @media screen and (min-width: 900px) {
@@ -243,60 +255,57 @@ st.markdown(
             left: 50%;
             margin-top: -50vw;
             margin-left: -50vh;
-            overflow-x: hidden;
+            overflow: hidden !important;
         }
     }
 
     .block-container {
-        padding-top: 0.2rem !important;
-        padding-bottom: 0.2rem !important;
-        padding-left: 0.3rem !important;
-        padding-right: 0.3rem !important;
+        padding: 0.2rem 0.4rem !important;
         max-width: 100% !important;
     }
-    
+
     .live-header {
         background-color: #152238;
-        padding: 0.4rem 0.6rem;
-        border-radius: 6px;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
         margin-bottom: 0.3rem;
         border: 1px solid #1e293b;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: space-between;
         align-items: center;
-        gap: 3px;
     }
     .live-badge {
         background-color: #ef4444;
         color: white;
         padding: 0.1rem 0.5rem;
-        border-radius: 4px;
+        border-radius: 3px;
         font-weight: 800;
         font-size: 0.75rem;
     }
     .live-title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 800;
         color: #f8fafc;
         text-align: center;
     }
     .live-time {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 700;
         color: #38bdf8;
     }
-    
+
     .legend-box {
         background-color: #152238;
         border: 1px solid #1e293b;
-        border-radius: 6px;
-        padding: 6px;
-        margin-bottom: 6px;
+        border-radius: 4px;
+        padding: 4px;
+        margin-bottom: 0.4rem;
         display: flex;
         justify-content: space-around;
         align-items: center;
         flex-wrap: wrap;
-        gap: 4px;
+        gap: 6px;
     }
     .legend-item {
         display: inline-flex;
@@ -307,20 +316,27 @@ st.markdown(
     }
     .moto-badge {
         display: inline-block;
-        padding: 2px 6px;
+        padding: 1px 5px;
         border-radius: 3px;
         font-weight: 900;
         font-size: 0.75rem;
         text-align: center;
         margin-right: 4px;
     }
-    
-    .tv-container {
+
+    /* GRID DE 2 COLUMNAS PARA APROVECHAR ANCHO PANTALLA */
+    .tv-grid {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
         width: 100%;
+    }
+    .tv-column {
+        flex: 1;
         background-color: #111c30;
-        border-radius: 6px;
+        border-radius: 4px;
         border: 1px solid #1e293b;
-        overflow: hidden;
+        overflow: hidden !important;
     }
     .tv-table {
         width: 100%;
@@ -330,30 +346,31 @@ st.markdown(
     .tv-table th {
         background-color: #0b1329;
         color: #64748b;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 800;
-        padding: 0.35rem 0.2rem;
-        border-bottom: 2px solid #1e293b;
+        padding: 0.2rem 0.2rem;
+        border-bottom: 1px solid #1e293b;
         text-align: left;
     }
     .tv-table th.center-header { text-align: center; }
-    
+
     .tv-table td {
-        padding: 0.25rem 0.3rem !important;
+        padding: 0.15rem 0.25rem !important;
         border-bottom: 1px solid #172338;
         vertical-align: middle;
         white-space: nowrap;
+        line-height: 1.15;
     }
     .location-name {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         font-weight: 800;
         color: #ffffff !important;
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
-    
-    .day-check { color: #38bdf8; font-weight: 900; font-size: 0.9rem; }
-    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.9rem; }
-    .day-off { color: #1e293b; font-size: 0.75rem; }
+
+    .day-check { color: #38bdf8; font-weight: 900; font-size: 0.85rem; }
+    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.85rem; }
+    .day-off { color: #1e293b; font-size: 0.7rem; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -379,7 +396,7 @@ def renderizar_tablero_vertical():
     <div class="live-header">
         <div><span class="live-badge">● EN VIVO</span></div>
         <div class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.8rem; color: #64748b;">({fecha_actual})</span></div>
+        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #64748b;">({fecha_actual})</span></div>
     </div>
     """,
         unsafe_allow_html=True,
@@ -403,42 +420,52 @@ def renderizar_tablero_vertical():
         cfg = MOTORIZADOS_CONFIG.get(motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"])
         return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
 
-    rows_list = []
-    for _, m in df_maquinas.iterrows():
-        badge_moto = get_moto_badge(m["motorizado"])
-        c_l = get_cell(m["lunes"])
-        c_m = get_cell(m["martes"])
-        c_x = get_cell(m["miercoles"])
-        c_j = get_cell(m["jueves"])
-        c_v = get_cell(m["viernes"])
-        c_s = get_cell(m["sabado"], is_sat=True)
+    # DIVIDIR EN 2 GRUPOS PARA MOSTRAR EN 2 COLUMNAS PARALELAS
+    mitad = (len(df_maquinas) + 1) // 2
+    df_col1 = df_maquinas.iloc[:mitad]
+    df_col2 = df_maquinas.iloc[mitad:]
 
-        rows_list.append(
-            f'<tr><td class="location-name">{m["nombre"]}</td>'
-            f'<td style="text-align: center;">{badge_moto}</td>'
-            f'<td style="text-align: center;">{c_l}</td>'
-            f'<td style="text-align: center;">{c_m}</td>'
-            f'<td style="text-align: center;">{c_x}</td>'
-            f'<td style="text-align: center;">{c_j}</td>'
-            f'<td style="text-align: center;">{c_v}</td>'
-            f'<td style="text-align: center;">{c_s}</td></tr>'
+    def construir_tabla_html(df_sub):
+        rows_list = []
+        for _, m in df_sub.iterrows():
+            badge_moto = get_moto_badge(m["motorizado"])
+            c_l = get_cell(m["lunes"])
+            c_m = get_cell(m["martes"])
+            c_x = get_cell(m["miercoles"])
+            c_j = get_cell(m["jueves"])
+            c_v = get_cell(m["viernes"])
+            c_s = get_cell(m["sabado"], is_sat=True)
+
+            rows_list.append(
+                f'<tr><td class="location-name">{m["nombre"]}</td>'
+                f'<td style="text-align: center;">{badge_moto}</td>'
+                f'<td style="text-align: center;">{c_l}</td>'
+                f'<td style="text-align: center;">{c_m}</td>'
+                f'<td style="text-align: center;">{c_x}</td>'
+                f'<td style="text-align: center;">{c_j}</td>'
+                f'<td style="text-align: center;">{c_v}</td>'
+                f'<td style="text-align: center;">{c_s}</td></tr>'
+            )
+
+        html_rows = "".join(rows_list)
+        return (
+            f'<div class="tv-column"><table class="tv-table"><thead><tr>'
+            f'<th style="width: 44%;">UBICACIÓN</th>'
+            f'<th class="center-header" style="width: 14%;">RESP.</th>'
+            f'<th class="center-header" style="width: 7%;">L</th>'
+            f'<th class="center-header" style="width: 7%;">M</th>'
+            f'<th class="center-header" style="width: 7%;">X</th>'
+            f'<th class="center-header" style="width: 7%;">J</th>'
+            f'<th class="center-header" style="width: 7%;">V</th>'
+            f'<th class="center-header" style="width: 7%;">S</th>'
+            f'</tr></thead><tbody>{html_rows}</tbody></table></div>'
         )
 
-    html_rows = "".join(rows_list)
-    tabla_completa = (
-        f'<div class="tv-container"><table class="tv-table"><thead><tr>'
-        f'<th style="width: 45%;">UBICACIÓN</th>'
-        f'<th class="center-header" style="width: 13%;">RESP.</th>'
-        f'<th class="center-header" style="width: 7%;">L</th>'
-        f'<th class="center-header" style="width: 7%;">M</th>'
-        f'<th class="center-header" style="width: 7%;">X</th>'
-        f'<th class="center-header" style="width: 7%;">J</th>'
-        f'<th class="center-header" style="width: 7%;">V</th>'
-        f'<th class="center-header" style="width: 7%;">S</th>'
-        f'</tr></thead><tbody>{html_rows}</tbody></table></div>'
-    )
+    tabla1_html = construir_tabla_html(df_col1)
+    tabla2_html = construir_tabla_html(df_col2)
 
-    st.markdown(tabla_completa, unsafe_allow_html=True)
+    html_final = f'<div class="tv-grid">{tabla1_html}{tabla2_html}</div>'
+    st.markdown(html_final, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
