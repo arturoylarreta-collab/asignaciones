@@ -1,7 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Vertical Rotado por CSS
-Carga directa de las 61 Ubicaciones Reales
+Diseño Vertical Rotado por CSS - Versión Optimizada
 """
 
 import os
@@ -22,6 +21,7 @@ st.set_page_config(
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit_v2.db")
+SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
 
 MOTORIZADOS_CONFIG = {
     "Eduard": {"code": "ED", "bg": "#2563eb", "color": "#ffffff"},
@@ -111,109 +111,101 @@ def get_db_connection():
 
 
 def init_db(force_reset=False):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        if force_reset:
+            cursor.execute("DROP TABLE IF EXISTS maquinas")
 
-    if force_reset:
-        cursor.execute("DROP TABLE IF EXISTS maquinas")
-
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS maquinas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            motorizado TEXT DEFAULT 'Sin Asignar',
-            lunes INTEGER DEFAULT 0,
-            martes INTEGER DEFAULT 0,
-            miercoles INTEGER DEFAULT 0,
-            jueves INTEGER DEFAULT 0,
-            viernes INTEGER DEFAULT 0,
-            sabado INTEGER DEFAULT 0,
-            observaciones TEXT DEFAULT ''
-        )
-    """
-    )
-
-    cursor.execute("SELECT COUNT(*) FROM maquinas")
-    total = cursor.fetchone()[0]
-
-    if total == 0 or force_reset:
-        cursor.execute("DELETE FROM maquinas")
-        cursor.executemany(
+        cursor.execute(
             """
-            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            LISTA_REAL_MAQUINAS,
+            CREATE TABLE IF NOT EXISTS maquinas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                motorizado TEXT DEFAULT 'Sin Asignar',
+                lunes INTEGER DEFAULT 0,
+                martes INTEGER DEFAULT 0,
+                miercoles INTEGER DEFAULT 0,
+                jueves INTEGER DEFAULT 0,
+                viernes INTEGER DEFAULT 0,
+                sabado INTEGER DEFAULT 0,
+                observaciones TEXT DEFAULT ''
+            )
+            """
         )
-        conn.commit()
 
-    conn.close()
+        cursor.execute("SELECT COUNT(*) FROM maquinas")
+        total = cursor.fetchone()[0]
+
+        if total == 0 or force_reset:
+            cursor.execute("DELETE FROM maquinas")
+            cursor.executemany(
+                """
+                INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                LISTA_REAL_MAQUINAS,
+            )
+            conn.commit()
 
 
 init_db()
 
 
 def cargar_maquinas():
-    conn = get_db_connection()
-    df = pd.read_sql_query("SELECT * FROM maquinas ORDER BY id ASC", conn)
-    conn.close()
-    return df
+    with get_db_connection() as conn:
+        return pd.read_sql_query("SELECT * FROM maquinas ORDER BY id ASC", conn)
 
 
 def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, '')
-    """,
-        (
-            nombre,
-            motorizado,
-            int(lunes),
-            int(martes),
-            int(miercoles),
-            int(jueves),
-            int(viernes),
-            int(sabado),
-        ),
-    )
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '')
+            """,
+            (
+                nombre,
+                motorizado,
+                int(lunes),
+                int(martes),
+                int(miercoles),
+                int(jueves),
+                int(viernes),
+                int(sabado),
+            ),
+        )
+        conn.commit()
 
 
 def actualizar_maquina(m_id, nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        UPDATE maquinas SET nombre=?, motorizado=?, lunes=?, martes=?, miercoles=?, jueves=?, viernes=?, sabado=?
-        WHERE id=?
-    """,
-        (
-            nombre,
-            motorizado,
-            int(lunes),
-            int(martes),
-            int(miercoles),
-            int(jueves),
-            int(viernes),
-            int(sabado),
-            m_id,
-        ),
-    )
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE maquinas SET nombre=?, motorizado=?, lunes=?, martes=?, miercoles=?, jueves=?, viernes=?, sabado=?
+            WHERE id=?
+            """,
+            (
+                nombre,
+                motorizado,
+                int(lunes),
+                int(martes),
+                int(miercoles),
+                int(jueves),
+                int(viernes),
+                int(sabado),
+                m_id,
+            ),
+        )
+        conn.commit()
 
 
 def eliminar_maquina(m_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM maquinas WHERE id=?", (m_id,))
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM maquinas WHERE id=?", (m_id,))
+        conn.commit()
 
 
 # ---------------------------------------------------------
@@ -388,11 +380,11 @@ def renderizar_tablero_vertical():
         unsafe_allow_html=True,
     )
 
-    legend_html = '<div class="legend-box">'
-    for nombre, cfg in MOTORIZADOS_CONFIG.items():
-        legend_html += f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
-    legend_html += "</div>"
-    st.markdown(legend_html, unsafe_allow_html=True)
+    legend_items = "".join(
+        f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
+        for nombre, cfg in MOTORIZADOS_CONFIG.items()
+    )
+    st.markdown(f'<div class="legend-box">{legend_items}</div>', unsafe_allow_html=True)
 
     df_maquinas = cargar_maquinas()
 
@@ -406,7 +398,7 @@ def renderizar_tablero_vertical():
         cfg = MOTORIZADOS_CONFIG.get(motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"])
         return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
 
-    html_rows = ""
+    rows_list = []
     for _, m in df_maquinas.iterrows():
         badge_moto = get_moto_badge(m["motorizado"])
         c_l = get_cell(m["lunes"])
@@ -416,9 +408,30 @@ def renderizar_tablero_vertical():
         c_v = get_cell(m["viernes"])
         c_s = get_cell(m["sabado"], is_sat=True)
 
-        html_rows += f'<tr><td class="location-name">{m["nombre"]}</td><td style="text-align: center;">{badge_moto}</td><td style="text-align: center;">{c_l}</td><td style="text-align: center;">{c_m}</td><td style="text-align: center;">{c_x}</td><td style="text-align: center;">{c_j}</td><td style="text-align: center;">{c_v}</td><td style="text-align: center;">{c_s}</td></tr>'
+        rows_list.append(
+            f'<tr><td class="location-name">{m["nombre"]}</td>'
+            f'<td style="text-align: center;">{badge_moto}</td>'
+            f'<td style="text-align: center;">{c_l}</td>'
+            f'<td style="text-align: center;">{c_m}</td>'
+            f'<td style="text-align: center;">{c_x}</td>'
+            f'<td style="text-align: center;">{c_j}</td>'
+            f'<td style="text-align: center;">{c_v}</td>'
+            f'<td style="text-align: center;">{c_s}</td></tr>'
+        )
 
-    tabla_completa = f'<div class="tv-container"><table class="tv-table"><thead><tr><th style="width: 45%;">UBICACIÓN</th><th class="center-header" style="width: 13%;">RESP.</th><th class="center-header" style="width: 7%;">L</th><th class="center-header" style="width: 7%;">M</th><th class="center-header" style="width: 7%;">X</th><th class="center-header" style="width: 7%;">J</th><th class="center-header" style="width: 7%;">V</th><th class="center-header" style="width: 7%;">S</th></tr></thead><tbody>{html_rows}</tbody></table></div>'
+    html_rows = "".join(rows_list)
+    tabla_completa = (
+        f'<div class="tv-container"><table class="tv-table"><thead><tr>'
+        f'<th style="width: 45%;">UBICACIÓN</th>'
+        f'<th class="center-header" style="width: 13%;">RESP.</th>'
+        f'<th class="center-header" style="width: 7%;">L</th>'
+        f'<th class="center-header" style="width: 7%;">M</th>'
+        f'<th class="center-header" style="width: 7%;">X</th>'
+        f'<th class="center-header" style="width: 7%;">J</th>'
+        f'<th class="center-header" style="width: 7%;">V</th>'
+        f'<th class="center-header" style="width: 7%;">S</th>'
+        f'</tr></thead><tbody>{html_rows}</tbody></table></div>'
+    )
 
     st.markdown(tabla_completa, unsafe_allow_html=True)
 
@@ -433,9 +446,9 @@ elif modo == "⚙️ Panel de Control":
     st.title("⚙️ Panel de Gestión")
     st.markdown("---")
 
-    pin_ingresado = st.sidebar.text_input("Clave Supervisor:", type="password", value="1234")
+    pin_ingresado = st.sidebar.text_input("Clave Supervisor:", type="password")
 
-    if pin_ingresado != "1234":
+    if pin_ingresado != SUPERVISOR_PIN:
         st.warning("🔒 Ingrese la clave de supervisor correcta para editar.")
     else:
         st.success("🔓 Acceso concedido.")
