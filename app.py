@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Fijo Pantalla Completa - Tablero TV 43"
+Tablero TV 43" - Ancho Completo (+10% Escala para Lectura Distante)
 """
 
 import os
@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (ANCHO COMPLETO)
+# CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero Logístico Vertical",
@@ -213,18 +213,33 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS ESTABLES Y LIMPIOS
+# ESTILOS CSS CON ESCALADO DE +10% PARA VISUALIZACIÓN DISTANTE
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* Ocultar interfaz por defecto de Streamlit */
-    #MainMenu, footer, header, [data-testid="stHeader"] {
+    /* Ocultar únicamente el menú secundario y pie de página */
+    #MainMenu, footer {
         display: none !important;
         visibility: hidden !important;
     }
 
-    /* Ocultar scrollbars sin ocultar contenido */
+    /* Ocultar barra superior manteniendo el botón de barra lateral */
+    [data-testid="stHeader"] {
+        background-color: transparent !important;
+        z-index: 100000 !important;
+    }
+
+    /* Estilizar el botón flotante para desplegar/colapsar la barra lateral */
+    [data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarExpandButton"] {
+        color: #38bdf8 !important;
+        background-color: #152238 !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 6px !important;
+        margin: 6px !important;
+    }
+
+    /* Ocultar scrollbars */
     ::-webkit-scrollbar {
         display: none !important;
         width: 0px !important;
@@ -245,11 +260,12 @@ st.markdown(
         max-width: 100% !important;
     }
 
+    /* ENCABEZADO SUPERIOR ESCALADO */
     .live-header {
         background-color: #152238;
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px;
-        margin-bottom: 0.4rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
         border: 1px solid #1e293b;
         display: flex;
         flex-direction: row;
@@ -259,63 +275,64 @@ st.markdown(
     .live-badge {
         background-color: #ef4444;
         color: white;
-        padding: 0.15rem 0.6rem;
+        padding: 0.2rem 0.7rem;
         border-radius: 4px;
         font-weight: 800;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
     .live-title {
-        font-size: 1.2rem;
+        font-size: 1.35rem;
         font-weight: 800;
         color: #f8fafc;
         text-align: center;
     }
     .live-time {
-        font-size: 0.95rem;
+        font-size: 1.05rem;
         font-weight: 700;
         color: #38bdf8;
     }
 
+    /* LEYENDA SUPERIOR ESCALADA */
     .legend-box {
         background-color: #152238;
         border: 1px solid #1e293b;
-        border-radius: 6px;
-        padding: 6px;
-        margin-bottom: 0.5rem;
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 0.6rem;
         display: flex;
         justify-content: space-around;
         align-items: center;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
     }
     .legend-item {
         display: inline-flex;
         align-items: center;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
         font-weight: 700;
         color: #cbd5e1;
     }
     .moto-badge {
         display: inline-block;
-        padding: 2px 6px;
-        border-radius: 3px;
+        padding: 3px 7px;
+        border-radius: 4px;
         font-weight: 900;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         text-align: center;
-        margin-right: 5px;
+        margin-right: 6px;
     }
 
-    /* GRID DE 2 COLUMNAS EN PARALELO */
+    /* GRID Y TABLAS CON ELEMENTOS +10% MÁS GRANDES */
     .tv-grid {
         display: flex;
         flex-direction: row;
-        gap: 12px;
+        gap: 14px;
         width: 100%;
     }
     .tv-column {
         flex: 1;
         background-color: #111c30;
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px solid #1e293b;
     }
     .tv-table {
@@ -326,38 +343,38 @@ st.markdown(
     .tv-table th {
         background-color: #0b1329;
         color: #64748b;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         font-weight: 800;
-        padding: 0.3rem 0.3rem;
+        padding: 0.35rem 0.35rem;
         border-bottom: 2px solid #1e293b;
         text-align: left;
     }
     .tv-table th.center-header { text-align: center; }
 
     .tv-table td {
-        padding: 0.2rem 0.3rem !important;
+        padding: 0.25rem 0.35rem !important;
         border-bottom: 1px solid #172338;
         vertical-align: middle;
         white-space: nowrap;
-        line-height: 1.2;
+        line-height: 1.25;
     }
     .location-name {
-        font-size: 0.88rem;
+        font-size: 0.98rem;
         font-weight: 800;
         color: #ffffff !important;
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: 0.9rem; }
-    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.9rem; }
-    .day-off { color: #1e293b; font-size: 0.75rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: 1.0rem; }
+    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 1.0rem; }
+    .day-off { color: #1e293b; font-size: 0.82rem; }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ---------------------------------------------------------
-# NAVEGACIÓN
+# NAVEGACIÓN EN BARRA LATERAL
 # ---------------------------------------------------------
 st.sidebar.title("🎛️ NAVEGACIÓN")
 modo = st.sidebar.radio("Seleccionar Vista:", ["📱 Tablero Vertical", "⚙️ Panel de Control"])
@@ -376,7 +393,7 @@ def renderizar_tablero_vertical():
     <div class="live-header">
         <div><span class="live-badge">● EN VIVO</span></div>
         <div class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.8rem; color: #64748b;">({fecha_actual})</span></div>
+        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.85rem; color: #64748b;">({fecha_actual})</span></div>
     </div>
     """,
         unsafe_allow_html=True,
