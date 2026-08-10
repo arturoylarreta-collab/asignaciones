@@ -1,7 +1,7 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Vertical Rotado por CSS (Para TV de lado o pantalla horizontal)
-Lista Única Continua de 61 Ubicaciones
+Diseño Vertical Rotado por CSS
+Carga directa de las 61 Ubicaciones Reales
 """
 
 import os
@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit.db")
+DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit_v2.db")
 
 MOTORIZADOS_CONFIG = {
     "Eduard": {"code": "ED", "bg": "#2563eb", "color": "#ffffff"},
@@ -33,9 +33,76 @@ MOTORIZADOS_CONFIG = {
 
 MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
 
+# ---------------------------------------------------------
+# LISTA REAL DE 61 MÁQUINAS/UBICACIONES
+# ---------------------------------------------------------
+LISTA_REAL_MAQUINAS = [
+    ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, ""),
+    ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, ""),
+    ("Unimet EM", "Eduard", 1, 0, 0, 0, 1, 0, ""),
+    ("UCV ING", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
+    ("UCV COMP", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
+    ("UCAB CONVERT", "Freduard", 0, 0, 1, 1, 0, 0, ""),
+    ("UCAB LAB", "Freduard", 0, 1, 0, 0, 1, 0, ""),
+    ("UCAB P1", "Freduard", 1, 0, 0, 0, 0, 0, ""),
+    ("UCAB MEZ", "Freduard", 0, 1, 0, 0, 0, 0, ""),
+    ("UCAB M3", "Freduard", 0, 0, 1, 0, 0, 0, ""),
+    ("USM", "Alejandro", 1, 0, 1, 0, 1, 0, ""),
+    ("MONTAÑA", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
+    ("EURO S1", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
+    ("EURO S2", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
+    ("TAMACO", "Eduard", 0, 1, 0, 0, 0, 0, ""),
+    ("TAMACA", "Eduard", 0, 1, 0, 0, 0, 0, ""),
+    ("HUMBOLDT", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
+    ("GOLD DATA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
+    ("PAGO DIRECTO", "Gustavo", 1, 0, 1, 0, 1, 0, ""),
+    ("CUBITT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
+    ("KURIOS", "Eduard", 0, 0, 0, 0, 1, 0, ""),
+    ("CASHEA P9", "Freduard", 1, 0, 1, 0, 1, 0, ""),
+    ("CASHEA P18", "Freduard", 1, 0, 1, 0, 1, 0, ""),
+    ("DICAM", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
+    ("FISA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
+    ("DOMESA", "Eduard", 1, 1, 1, 1, 1, 0, ""),
+    ("TU GRUERO", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
+    ("UNION RADIO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
+    ("FORUM P7", "Freduard", 0, 1, 0, 0, 1, 0, ""),
+    ("FORUM P15", "Freduard", 0, 1, 0, 0, 1, 0, ""),
+    ("BANGENTE", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
+    ("PROVINCIAL", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
+    ("TRANRED", "Eduard", 0, 0, 1, 0, 0, 0, ""),
+    ("ROBIN", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
+    ("CALLCENTER DRCC", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
+    ("DUNCAN", "Eduard", 0, 0, 0, 1, 0, 0, ""),
+    ("ADROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, ""),
+    ("PEGASO", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
+    ("TIO AMMI 1", "Freduard", 1, 0, 1, 0, 0, 0, ""),
+    ("TIO AMMI 2", "Freduard", 0, 1, 0, 1, 0, 0, ""),
+    ("RS1 RECEP", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
+    ("RS2 COMED", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
+    ("WECONNECT", "Eduard", 0, 0, 1, 0, 1, 0, ""),
+    ("CEMENTERIO", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
+    ("HEBRAICA", "Freduard", 1, 0, 1, 0, 1, 0, ""),
+    ("POLICLINICA P3", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
+    ("POLICLINICA P4", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
+    ("FLORESTA EM", "Eduard", 1, 0, 0, 1, 0, 0, ""),
+    ("FLORESTA P3", "Eduard", 0, 1, 0, 0, 1, 0, ""),
+    ("AVILA ADULT", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
+    ("AVILA PEDT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
+    ("SANATRIX", "Freduard", 1, 0, 1, 0, 1, 0, ""),
+    ("VENE CHACAO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
+    ("VENE ALTAMIRA", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
+    ("VENE CANDELARIA", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
+    ("FLORIDA", "Eduard", 0, 0, 1, 0, 1, 0, ""),
+    ("CCS S1", "Freduard", 1, 0, 0, 1, 0, 0, ""),
+    ("CCS S2", "Freduard", 0, 1, 0, 0, 1, 0, ""),
+    ("FENIX", "Alejandro", 0, 0, 1, 0, 1, 0, ""),
+    ("OFICENTRO 1", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
+    ("OFICENTRO 2", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
+]
+
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE (61 MÁQUINAS)
+# BASE DE DATOS SQLITE
 # ---------------------------------------------------------
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -72,77 +139,12 @@ def init_db(force_reset=False):
 
     if total == 0 or force_reset:
         cursor.execute("DELETE FROM maquinas")
-
-        lista_real_maquinas = [
-            ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, ""),
-            ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, ""),
-            ("Unimet EM", "Eduard", 1, 0, 0, 0, 1, 0, ""),
-            ("UCV ING", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-            ("UCV COMP", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-            ("UCAB CONVERT", "Freduard", 0, 0, 1, 1, 0, 0, ""),
-            ("UCAB LAB", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-            ("UCAB P1", "Freduard", 1, 0, 0, 0, 0, 0, ""),
-            ("UCAB MEZ", "Freduard", 0, 1, 0, 0, 0, 0, ""),
-            ("UCAB M3", "Freduard", 0, 0, 1, 0, 0, 0, ""),
-            ("USM", "Alejandro", 1, 0, 1, 0, 1, 0, ""),
-            ("MONTAÑA", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
-            ("EURO S1", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-            ("EURO S2", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-            ("TAMACO", "Eduard", 0, 1, 0, 0, 0, 0, ""),
-            ("TAMACA", "Eduard", 0, 1, 0, 0, 0, 0, ""),
-            ("HUMBOLDT", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
-            ("GOLD DATA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
-            ("PAGO DIRECTO", "Gustavo", 1, 0, 1, 0, 1, 0, ""),
-            ("CUBITT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-            ("KURIOS", "Eduard", 0, 0, 0, 0, 1, 0, ""),
-            ("CASHEA P9", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-            ("CASHEA P18", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-            ("DICAM", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
-            ("FISA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
-            ("DOMESA", "Eduard", 1, 1, 1, 1, 1, 0, ""),
-            ("TU GRUERO", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
-            ("UNION RADIO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-            ("FORUM P7", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-            ("FORUM P15", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-            ("BANGENTE", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-            ("PROVINCIAL", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
-            ("TRANRED", "Eduard", 0, 0, 1, 0, 0, 0, ""),
-            ("ROBIN", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-            ("CALLCENTER DRCC", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
-            ("DUNCAN", "Eduard", 0, 0, 0, 1, 0, 0, ""),
-            ("ADROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, ""),
-            ("PEGASO", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
-            ("TIO AMMI 1", "Freduard", 1, 0, 1, 0, 0, 0, ""),
-            ("TIO AMMI 2", "Freduard", 0, 1, 0, 1, 0, 0, ""),
-            ("RS1 RECEP", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-            ("RS2 COMED", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-            ("WECONNECT", "Eduard", 0, 0, 1, 0, 1, 0, ""),
-            ("CEMENTERIO", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
-            ("HEBRAICA", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-            ("POLICLINICA P3", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-            ("POLICLINICA P4", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
-            ("FLORESTA EM", "Eduard", 1, 0, 0, 1, 0, 0, ""),
-            ("FLORESTA P3", "Eduard", 0, 1, 0, 0, 1, 0, ""),
-            ("AVILA ADULT", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-            ("AVILA PEDT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-            ("SANATRIX", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-            ("VENE CHACAO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-            ("VENE ALTAMIRA", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-            ("VENE CANDELARIA", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-            ("FLORIDA", "Eduard", 0, 0, 1, 0, 1, 0, ""),
-            ("CCS S1", "Freduard", 1, 0, 0, 1, 0, 0, ""),
-            ("CCS S2", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-            ("FENIX", "Alejandro", 0, 0, 1, 0, 1, 0, ""),
-            ("OFICENTRO 1", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-            ("OFICENTRO 2", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
-        ]
-
         cursor.executemany(
             """
             INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-            lista_real_maquinas,
+            LISTA_REAL_MAQUINAS,
         )
         conn.commit()
 
@@ -215,7 +217,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON ROTACIÓN FORZADA Y ADAPTACIÓN PANTALLA
+# ESTILOS CSS CON ROTACIÓN Y FORMATO VERTICAL
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -233,7 +235,6 @@ st.markdown(
         color: #f8fafc; 
     }
 
-    /* REGLA DE ROTACIÓN PARA PANTALLAS HORIZONTALES / TV MOUNTED */
     @media screen and (min-width: 900px) {
         .stApp {
             transform: rotate(-90deg);
@@ -257,7 +258,6 @@ st.markdown(
         max-width: 100% !important;
     }
     
-    /* Header Vertical */
     .live-header {
         background-color: #152238;
         padding: 0.4rem 0.6rem;
@@ -289,7 +289,6 @@ st.markdown(
         color: #38bdf8;
     }
     
-    /* Leyenda */
     .legend-box {
         background-color: #152238;
         border: 1px solid #1e293b;
@@ -319,7 +318,6 @@ st.markdown(
         margin-right: 4px;
     }
     
-    /* Tabla Continua Vertical */
     .tv-container {
         width: 100%;
         background-color: #111c30;
@@ -356,7 +354,6 @@ st.markdown(
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
     
-    /* Indicadores */
     .day-check { color: #38bdf8; font-weight: 900; font-size: 0.9rem; }
     .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.9rem; }
     .day-off { color: #1e293b; font-size: 0.75rem; }
@@ -373,7 +370,7 @@ modo = st.sidebar.radio("Seleccionar Vista:", ["📱 Tablero Vertical", "⚙️ 
 
 
 # ---------------------------------------------------------
-# TABLERO EN VIVO (LISTA ÚNICA VERTICAL)
+# TABLERO EN VIVO
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical():
@@ -443,15 +440,15 @@ elif modo == "⚙️ Panel de Control":
     else:
         st.success("🔓 Acceso concedido.")
 
-        if st.sidebar.button("🔄 Cargar / Restablecer 61 Ubicaciones"):
+        if st.sidebar.button("🔄 Recargar las 61 Ubicaciones Iniciales"):
             init_db(force_reset=True)
-            st.sidebar.success("¡Base de datos restablecida!")
+            st.sidebar.success("¡Base de datos restablecida con éxito!")
             st.rerun()
 
         col_form, col_tabla = st.columns([1, 2])
 
         with col_form:
-            st.subheader("➕ Agregar Ubicación")
+            st.subheader("➕ Agregar Nueva Ubicación")
             with st.form("form_agregar", clear_on_submit=True):
                 nombre_nuevo = st.text_input("Nombre de Ubicación:")
                 moto_nuevo = st.selectbox("Motorizado Asignado:", MOTORIZADOS_DISPONIBLES, index=0)
