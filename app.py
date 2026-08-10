@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Vertical Rotado por CSS - Versión Optimizada
+Diseño Vertical Rotado por CSS
 """
 
 import os
@@ -21,7 +21,12 @@ st.set_page_config(
 )
 
 DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit_v2.db")
-SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
+
+# Manejo seguro de secrets para evitar StreamlitSecretNotFoundError
+try:
+    SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
+except Exception:
+    SUPERVISOR_PIN = "1234"
 
 MOTORIZADOS_CONFIG = {
     "Eduard": {"code": "ED", "bg": "#2563eb", "color": "#ffffff"},
