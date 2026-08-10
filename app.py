@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Diseño Vertical Rotado por CSS - Ancho Completo (2 Columnas)
+Diseño Fijo Pantalla Completa - Tablero TV 43"
 """
 
 import os
@@ -11,12 +11,12 @@ import pandas as pd
 import streamlit as st
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (WIDE LAYOUT PARA ANCHO COMPLETO)
+# CONFIGURACIÓN DE PÁGINA (ANCHO COMPLETO)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Tablero Logístico Vertical",
     page_icon="🚚",
-    layout="wide",  # Se cambia a wide para usar el 100% del ancho
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
@@ -213,62 +213,43 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS - PANTALLA COMPLETA EN 2 COLUMNAS
+# ESTILOS CSS ESTABLES Y LIMPIOS
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* Ocultar scrollbars globales */
-    * {
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
-    }
-    ::-webkit-scrollbar {
-        display: none !important;
-        width: 0px !important;
-        height: 0px !important;
-    }
-
+    /* Ocultar interfaz por defecto de Streamlit */
     #MainMenu, footer, header, [data-testid="stHeader"] {
         display: none !important;
         visibility: hidden !important;
     }
 
-    html, body, .stApp, [data-testid="stAppViewContainer"], .main, .block-container {
-        overflow: hidden !important;
-        background-color: #0b1329 !important;
-        color: #f8fafc;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100vw !important;
-        max-width: 100vw !important;
+    /* Ocultar scrollbars sin ocultar contenido */
+    ::-webkit-scrollbar {
+        display: none !important;
+        width: 0px !important;
+    }
+    * {
+        scrollbar-width: none !important;
     }
 
-    @media screen and (min-width: 900px) {
-        .stApp {
-            transform: rotate(-90deg);
-            transform-origin: center center;
-            width: 100vh !important;
-            height: 100vw !important;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            margin-top: -50vw;
-            margin-left: -50vh;
-            overflow: hidden !important;
-        }
+    html, body, .stApp {
+        background-color: #0b1329 !important;
+        color: #f8fafc !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     .block-container {
-        padding: 0.2rem 0.4rem !important;
+        padding: 0.4rem 0.6rem !important;
         max-width: 100% !important;
     }
 
     .live-header {
         background-color: #152238;
-        padding: 0.3rem 0.6rem;
-        border-radius: 4px;
-        margin-bottom: 0.3rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        margin-bottom: 0.4rem;
         border: 1px solid #1e293b;
         display: flex;
         flex-direction: row;
@@ -278,19 +259,19 @@ st.markdown(
     .live-badge {
         background-color: #ef4444;
         color: white;
-        padding: 0.1rem 0.5rem;
-        border-radius: 3px;
+        padding: 0.15rem 0.6rem;
+        border-radius: 4px;
         font-weight: 800;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
     }
     .live-title {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: #f8fafc;
         text-align: center;
     }
     .live-time {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         font-weight: 700;
         color: #38bdf8;
     }
@@ -298,45 +279,44 @@ st.markdown(
     .legend-box {
         background-color: #152238;
         border: 1px solid #1e293b;
-        border-radius: 4px;
-        padding: 4px;
-        margin-bottom: 0.4rem;
+        border-radius: 6px;
+        padding: 6px;
+        margin-bottom: 0.5rem;
         display: flex;
         justify-content: space-around;
         align-items: center;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
     }
     .legend-item {
         display: inline-flex;
         align-items: center;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         font-weight: 700;
         color: #cbd5e1;
     }
     .moto-badge {
         display: inline-block;
-        padding: 1px 5px;
+        padding: 2px 6px;
         border-radius: 3px;
         font-weight: 900;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         text-align: center;
-        margin-right: 4px;
+        margin-right: 5px;
     }
 
-    /* GRID DE 2 COLUMNAS PARA APROVECHAR ANCHO PANTALLA */
+    /* GRID DE 2 COLUMNAS EN PARALELO */
     .tv-grid {
         display: flex;
         flex-direction: row;
-        gap: 10px;
+        gap: 12px;
         width: 100%;
     }
     .tv-column {
         flex: 1;
         background-color: #111c30;
-        border-radius: 4px;
+        border-radius: 6px;
         border: 1px solid #1e293b;
-        overflow: hidden !important;
     }
     .tv-table {
         width: 100%;
@@ -346,31 +326,31 @@ st.markdown(
     .tv-table th {
         background-color: #0b1329;
         color: #64748b;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         font-weight: 800;
-        padding: 0.2rem 0.2rem;
-        border-bottom: 1px solid #1e293b;
+        padding: 0.3rem 0.3rem;
+        border-bottom: 2px solid #1e293b;
         text-align: left;
     }
     .tv-table th.center-header { text-align: center; }
 
     .tv-table td {
-        padding: 0.15rem 0.25rem !important;
+        padding: 0.2rem 0.3rem !important;
         border-bottom: 1px solid #172338;
         vertical-align: middle;
         white-space: nowrap;
-        line-height: 1.15;
+        line-height: 1.2;
     }
     .location-name {
-        font-size: 0.82rem;
+        font-size: 0.88rem;
         font-weight: 800;
         color: #ffffff !important;
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: 0.85rem; }
-    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.85rem; }
-    .day-off { color: #1e293b; font-size: 0.7rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: 0.9rem; }
+    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 0.9rem; }
+    .day-off { color: #1e293b; font-size: 0.75rem; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -396,7 +376,7 @@ def renderizar_tablero_vertical():
     <div class="live-header">
         <div><span class="live-badge">● EN VIVO</span></div>
         <div class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.75rem; color: #64748b;">({fecha_actual})</span></div>
+        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.8rem; color: #64748b;">({fecha_actual})</span></div>
     </div>
     """,
         unsafe_allow_html=True,
@@ -420,7 +400,6 @@ def renderizar_tablero_vertical():
         cfg = MOTORIZADOS_CONFIG.get(motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"])
         return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
 
-    # DIVIDIR EN 2 GRUPOS PARA MOSTRAR EN 2 COLUMNAS PARALELAS
     mitad = (len(df_maquinas) + 1) // 2
     df_col1 = df_maquinas.iloc[:mitad]
     df_col2 = df_maquinas.iloc[mitad:]
@@ -464,8 +443,7 @@ def renderizar_tablero_vertical():
     tabla1_html = construir_tabla_html(df_col1)
     tabla2_html = construir_tabla_html(df_col2)
 
-    html_final = f'<div class="tv-grid">{tabla1_html}{tabla2_html}</div>'
-    st.markdown(html_final, unsafe_allow_html=True)
+    st.markdown(f'<div class="tv-grid">{tabla1_html}{tabla2_html}</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
