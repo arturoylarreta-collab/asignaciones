@@ -1,6 +1,6 @@
 """
 Sistema de Control Logístico y Distribución en Streamlit
-Tablero TV 43" - Ancho Completo (+10% Escala para Lectura Distante)
+Tablero TV 43" - Control de Estado en Tiempo Real (Pendiente / En Ruta / Completado)
 """
 
 import os
@@ -37,9 +37,14 @@ MOTORIZADOS_CONFIG = {
 
 MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
 
-# ---------------------------------------------------------
-# LISTA REAL DE 61 MÁQUINAS/UBICACIONES
-# ---------------------------------------------------------
+ESTADOS_CONFIG = {
+    "PENDIENTE": {"label": "PENDIENTE", "icon": "⚪", "color": "#94a3b8", "bg": "#1e293b"},
+    "EN_RUTA": {"label": "EN RUTA", "icon": "🟡", "color": "#f59e0b", "bg": "#78350f"},
+    "COMPLETADO": {"label": "COMPLETADO", "icon": "🟢", "color": "#10b981", "bg": "#064e3b"},
+}
+
+DIAS_MAP = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado"}
+
 LISTA_REAL_MAQUINAS = [
     ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, ""),
     ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, ""),
@@ -106,7 +111,7 @@ LISTA_REAL_MAQUINAS = [
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS SQLITE
+# BASE DE DATOS CON MIGRACIÓN Y CONTROL DE ESTADO
 # ---------------------------------------------------------
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -132,10 +137,19 @@ def init_db(force_reset=False):
                 jueves INTEGER DEFAULT 0,
                 viernes INTEGER DEFAULT 0,
                 sabado INTEGER DEFAULT 0,
-                observaciones TEXT DEFAULT ''
+                observaciones TEXT DEFAULT '',
+                estado TEXT DEFAULT 'PENDIENTE',
+                fecha_estado TEXT DEFAULT ''
             )
             """
         )
+
+        cursor.execute("PRAGMA table_info(maquinas)")
+        columnas = [col[1] for col in cursor.fetchall()]
+        if "estado" not in columnas:
+            cursor.execute("ALTER TABLE maquinas ADD COLUMN estado TEXT DEFAULT 'PENDIENTE'")
+        if "fecha_estado" not in columnas:
+            cursor.execute("ALTER TABLE maquinas ADD COLUMN fecha_estado TEXT DEFAULT ''")
 
         cursor.execute("SELECT COUNT(*) FROM maquinas")
         total = cursor.fetchone()[0]
@@ -144,8 +158,8 @@ def init_db(force_reset=False):
             cursor.execute("DELETE FROM maquinas")
             cursor.executemany(
                 """
-                INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones, estado, fecha_estado)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', '')
                 """,
                 LISTA_REAL_MAQUINAS,
             )
@@ -156,17 +170,40 @@ init_db()
 
 
 def cargar_maquinas():
-    with get_db_connection() as conn:
-        return pd.read_sql_query("SELECT * FROM maquinas ORDER BY id ASC", conn)
-
-
-def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '')
+            UPDATE maquinas 
+            SET estado = 'PENDIENTE', fecha_estado = ? 
+            WHERE fecha_estado != ? OR fecha_estado IS NULL
+            """,
+            (hoy_str, hoy_str),
+        )
+        conn.commit()
+        return pd.read_sql_query("SELECT * FROM maquinas ORDER BY id ASC", conn)
+
+
+def cambiar_estado_maquina(m_id, nuevo_estado):
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE maquinas SET estado=?, fecha_estado=? WHERE id=?",
+            (nuevo_estado, hoy_str, m_id),
+        )
+        conn.commit()
+
+
+def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones, estado, fecha_estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', 'PENDIENTE', ?)
             """,
             (
                 nombre,
@@ -177,6 +214,7 @@ def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, vierne
                 int(jueves),
                 int(viernes),
                 int(sabado),
+                hoy_str,
             ),
         )
         conn.commit()
@@ -213,180 +251,83 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON ESCALADO DE +10% PARA VISUALIZACIÓN DISTANTE
+# ESTILOS CSS CON INDICADORES Y RESALTADO DE DÍA ACTUAL
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* Ocultar únicamente el menú secundario y pie de página */
-    #MainMenu, footer {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* Ocultar barra superior manteniendo el botón de barra lateral */
-    [data-testid="stHeader"] {
-        background-color: transparent !important;
-        z-index: 100000 !important;
-    }
-
-    /* Estilizar el botón flotante para desplegar/colapsar la barra lateral */
+    #MainMenu, footer { display: none !important; visibility: hidden !important; }
+    [data-testid="stHeader"] { background-color: transparent !important; z-index: 100000 !important; }
     [data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarExpandButton"] {
-        color: #38bdf8 !important;
-        background-color: #152238 !important;
-        border: 1px solid #1e293b !important;
-        border-radius: 6px !important;
-        margin: 6px !important;
+        color: #38bdf8 !important; background-color: #152238 !important;
+        border: 1px solid #1e293b !important; border-radius: 6px !important; margin: 6px !important;
     }
+    ::-webkit-scrollbar { display: none !important; width: 0px !important; }
+    * { scrollbar-width: none !important; }
 
-    /* Ocultar scrollbars */
-    ::-webkit-scrollbar {
-        display: none !important;
-        width: 0px !important;
-    }
-    * {
-        scrollbar-width: none !important;
-    }
+    html, body, .stApp { background-color: #0b1329 !important; color: #f8fafc !important; margin: 0 !important; padding: 0 !important; }
+    .block-container { padding: 0.4rem 0.6rem !important; max-width: 100% !important; }
 
-    html, body, .stApp {
-        background-color: #0b1329 !important;
-        color: #f8fafc !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .block-container {
-        padding: 0.4rem 0.6rem !important;
-        max-width: 100% !important;
-    }
-
-    /* ENCABEZADO SUPERIOR ESCALADO */
     .live-header {
-        background-color: #152238;
-        padding: 0.5rem 0.9rem;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-        border: 1px solid #1e293b;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
+        background-color: #152238; padding: 0.5rem 0.9rem; border-radius: 8px; margin-bottom: 0.5rem;
+        border: 1px solid #1e293b; display: flex; flex-direction: row; justify-content: space-between; align-items: center;
     }
-    .live-badge {
-        background-color: #ef4444;
-        color: white;
-        padding: 0.2rem 0.7rem;
-        border-radius: 4px;
-        font-weight: 800;
-        font-size: 0.9rem;
-    }
-    .live-title {
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: #f8fafc;
-        text-align: center;
-    }
-    .live-time {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #38bdf8;
-    }
+    .live-badge { background-color: #ef4444; color: white; padding: 0.2rem 0.7rem; border-radius: 4px; font-weight: 800; font-size: 0.9rem; }
+    .live-title { font-size: 1.35rem; font-weight: 800; color: #f8fafc; text-align: center; }
+    .live-time { font-size: 1.05rem; font-weight: 700; color: #38bdf8; }
 
-    /* LEYENDA SUPERIOR ESCALADA */
     .legend-box {
-        background-color: #152238;
-        border: 1px solid #1e293b;
-        border-radius: 8px;
-        padding: 8px;
-        margin-bottom: 0.6rem;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
+        background-color: #152238; border: 1px solid #1e293b; border-radius: 8px; padding: 8px; margin-bottom: 0.6rem;
+        display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 10px;
     }
-    .legend-item {
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #cbd5e1;
-    }
-    .moto-badge {
-        display: inline-block;
-        padding: 3px 7px;
-        border-radius: 4px;
-        font-weight: 900;
-        font-size: 0.9rem;
-        text-align: center;
-        margin-right: 6px;
-    }
+    .legend-item { display: inline-flex; align-items: center; font-size: 0.9rem; font-weight: 700; color: #cbd5e1; }
+    .moto-badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-weight: 900; font-size: 0.88rem; text-align: center; margin-right: 6px; }
 
-    /* GRID Y TABLAS CON ELEMENTOS +10% MÁS GRANDES */
-    .tv-grid {
-        display: flex;
-        flex-direction: row;
-        gap: 14px;
-        width: 100%;
-    }
-    .tv-column {
-        flex: 1;
-        background-color: #111c30;
-        border-radius: 8px;
-        border: 1px solid #1e293b;
-    }
-    .tv-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    .tv-table th {
-        background-color: #0b1329;
-        color: #64748b;
-        font-size: 0.9rem;
-        font-weight: 800;
-        padding: 0.35rem 0.35rem;
-        border-bottom: 2px solid #1e293b;
-        text-align: left;
-    }
+    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-align: center; }
+    .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
+    .status-EN_RUTA { background-color: #854d0e; color: #fef08a; animation: pulse 2s infinite; }
+    .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
+
+    .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
+
+    .tv-grid { display: flex; flex-direction: row; gap: 14px; width: 100%; }
+    .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; }
+    .tv-table { width: 100%; border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .tv-table th { background-color: #0b1329; color: #64748b; font-size: 0.9rem; font-weight: 800; padding: 0.35rem 0.35rem; border-bottom: 2px solid #1e293b; text-align: left; }
     .tv-table th.center-header { text-align: center; }
-
-    .tv-table td {
-        padding: 0.25rem 0.35rem !important;
-        border-bottom: 1px solid #172338;
-        vertical-align: middle;
-        white-space: nowrap;
-        line-height: 1.25;
-    }
-    .location-name {
-        font-size: 0.98rem;
-        font-weight: 800;
-        color: #ffffff !important;
-    }
+    .tv-table td { padding: 0.25rem 0.35rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.25; }
+    .location-name { font-size: 0.95rem; font-weight: 800; color: #ffffff !important; }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
     .day-check { color: #38bdf8; font-weight: 900; font-size: 1.0rem; }
     .day-check-sat { color: #a855f7; font-weight: 900; font-size: 1.0rem; }
     .day-off { color: #1e293b; font-size: 0.82rem; }
+
+    .row-COMPLETADO { opacity: 0.65; }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
-# ---------------------------------------------------------
-# NAVEGACIÓN EN BARRA LATERAL
-# ---------------------------------------------------------
-st.sidebar.title("🎛️ NAVEGACIÓN")
-modo = st.sidebar.radio("Seleccionar Vista:", ["📱 Tablero Vertical", "⚙️ Panel de Control"])
-
 
 # ---------------------------------------------------------
-# TABLERO EN VIVO
+# FUNCIONES DE RENDERING DE VISTAS
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical():
-    hora_actual = datetime.now().strftime("%H:%M:%S")
-    fecha_actual = datetime.now().strftime("%d/%m/%Y")
+    dt_now = datetime.now()
+    hora_actual = dt_now.strftime("%H:%M:%S")
+    fecha_actual = dt_now.strftime("%d/%m/%Y")
+    dia_num = dt_now.weekday()
+
+    df_maquinas = cargar_maquinas()
+
+    nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
+    df_hoy = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
+    total_hoy = len(df_hoy)
+    completadas_hoy = len(df_hoy[df_hoy["estado"] == "COMPLETADO"])
+    en_ruta_hoy = len(df_hoy[df_hoy["estado"] == "EN_RUTA"])
+    pendientes_hoy = total_hoy - completadas_hoy - en_ruta_hoy
 
     st.markdown(
         f"""
@@ -403,9 +344,19 @@ def renderizar_tablero_vertical():
         f'<div class="legend-item"><span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
         for nombre, cfg in MOTORIZADOS_CONFIG.items()
     )
-    st.markdown(f'<div class="legend-box">{legend_items}</div>', unsafe_allow_html=True)
 
-    df_maquinas = cargar_maquinas()
+    progreso_html = f"""
+    <div class="legend-box">
+        {legend_items}
+        <div style="border-left: 1px solid #334155; padding-left: 10px; display: flex; gap: 12px; font-weight: 800; font-size: 0.9rem;">
+            <span>HOY: <strong style="color: #38bdf8;">{total_hoy}</strong></span>
+            <span>🟢 <strong style="color: #10b981;">{completadas_hoy}</strong></span>
+            <span>🟡 <strong style="color: #f59e0b;">{en_ruta_hoy}</strong></span>
+            <span>⚪ <strong style="color: #94a3b8;">{pendientes_hoy}</strong></span>
+        </div>
+    </div>
+    """
+    st.markdown(progreso_html, unsafe_allow_html=True)
 
     def get_cell(active, is_sat=False):
         if active:
@@ -417,14 +368,26 @@ def renderizar_tablero_vertical():
         cfg = MOTORIZADOS_CONFIG.get(motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"])
         return f'<span class="moto-badge" style="background-color: {cfg["bg"]}; color: {cfg["color"]};">{cfg["code"]}</span>'
 
+    def get_status_badge(estado):
+        est = ESTADOS_CONFIG.get(estado, ESTADOS_CONFIG["PENDIENTE"])
+        return f'<span class="status-badge status-{estado}">{est["icon"]}</span>'
+
     mitad = (len(df_maquinas) + 1) // 2
     df_col1 = df_maquinas.iloc[:mitad]
     df_col2 = df_maquinas.iloc[mitad:]
+
+    h_l = "today-col-header" if dia_num == 0 else ""
+    h_m = "today-col-header" if dia_num == 1 else ""
+    h_x = "today-col-header" if dia_num == 2 else ""
+    h_j = "today-col-header" if dia_num == 3 else ""
+    h_v = "today-col-header" if dia_num == 4 else ""
+    h_s = "today-col-header" if dia_num == 5 else ""
 
     def construir_tabla_html(df_sub):
         rows_list = []
         for _, m in df_sub.iterrows():
             badge_moto = get_moto_badge(m["motorizado"])
+            badge_estado = get_status_badge(m["estado"])
             c_l = get_cell(m["lunes"])
             c_m = get_cell(m["martes"])
             c_x = get_cell(m["miercoles"])
@@ -432,15 +395,19 @@ def renderizar_tablero_vertical():
             c_v = get_cell(m["viernes"])
             c_s = get_cell(m["sabado"], is_sat=True)
 
+            row_class = f"row-{m['estado']}" if m["estado"] == "COMPLETADO" else ""
+
             rows_list.append(
-                f'<tr><td class="location-name">{m["nombre"]}</td>'
+                f'<tr class="{row_class}">'
+                f'<td class="location-name">{m["nombre"]} {badge_estado}</td>'
                 f'<td style="text-align: center;">{badge_moto}</td>'
                 f'<td style="text-align: center;">{c_l}</td>'
                 f'<td style="text-align: center;">{c_m}</td>'
                 f'<td style="text-align: center;">{c_x}</td>'
                 f'<td style="text-align: center;">{c_j}</td>'
                 f'<td style="text-align: center;">{c_v}</td>'
-                f'<td style="text-align: center;">{c_s}</td></tr>'
+                f'<td style="text-align: center;">{c_s}</td>'
+                f"</tr>"
             )
 
         html_rows = "".join(rows_list)
@@ -448,12 +415,12 @@ def renderizar_tablero_vertical():
             f'<div class="tv-column"><table class="tv-table"><thead><tr>'
             f'<th style="width: 44%;">UBICACIÓN</th>'
             f'<th class="center-header" style="width: 14%;">RESP.</th>'
-            f'<th class="center-header" style="width: 7%;">L</th>'
-            f'<th class="center-header" style="width: 7%;">M</th>'
-            f'<th class="center-header" style="width: 7%;">X</th>'
-            f'<th class="center-header" style="width: 7%;">J</th>'
-            f'<th class="center-header" style="width: 7%;">V</th>'
-            f'<th class="center-header" style="width: 7%;">S</th>'
+            f'<th class="center-header {h_l}" style="width: 7%;">L</th>'
+            f'<th class="center-header {h_m}" style="width: 7%;">M</th>'
+            f'<th class="center-header {h_x}" style="width: 7%;">X</th>'
+            f'<th class="center-header {h_j}" style="width: 7%;">J</th>'
+            f'<th class="center-header {h_v}" style="width: 7%;">V</th>'
+            f'<th class="center-header {h_s}" style="width: 7%;">S</th>'
             f'</tr></thead><tbody>{html_rows}</tbody></table></div>'
         )
 
@@ -464,12 +431,60 @@ def renderizar_tablero_vertical():
 
 
 # ---------------------------------------------------------
-# PANEL DE CONTROL
+# CONTROL DE NAVEGACIÓN Y VISTAS
 # ---------------------------------------------------------
+st.sidebar.title("🎛️ NAVEGACIÓN")
+modo = st.sidebar.radio(
+    "Seleccionar Vista:",
+    ["📱 Tablero Vertical", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión"],
+)
+
 if modo == "📱 Tablero Vertical":
     renderizar_tablero_vertical()
 
-elif modo == "⚙️ Panel de Control":
+elif modo == "⚡ Control de Ruta Hoy":
+    st.title("⚡ Control de Avance de Ruta (Hoy)")
+    st.markdown("Marque el estado de cada ubicación a medida que se realiza la ruta:")
+
+    df_maquinas = cargar_maquinas()
+    dia_num = datetime.now().weekday()
+    nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
+
+    filt_moto = st.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
+
+    df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
+    if filt_moto != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
+
+    st.subheader(
+        f"Máquinas programadas para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
+    )
+
+    for index, m in df_filtrado.iterrows():
+        col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns([3, 2, 1.5, 1.5, 1.5])
+
+        col_name.markdown(f"**{m['nombre']}** (`{m['motorizado']}`)")
+
+        est_actual = m["estado"]
+        col_status.markdown(
+            f"{ESTADOS_CONFIG[est_actual]['icon']} **{ESTADOS_CONFIG[est_actual]['label']}**"
+        )
+
+        if col_btn1.button("⚪ Pendiente", key=f"p_{m['id']}"):
+            cambiar_estado_maquina(m["id"], "PENDIENTE")
+            st.rerun()
+
+        if col_btn2.button("🟡 En Ruta", key=f"r_{m['id']}"):
+            cambiar_estado_maquina(m["id"], "EN_RUTA")
+            st.rerun()
+
+        if col_btn3.button("🟢 Completado", key=f"c_{m['id']}"):
+            cambiar_estado_maquina(m["id"], "COMPLETADO")
+            st.rerun()
+
+        st.divider()
+
+elif modo == "⚙️ Panel de Gestión":
     st.title("⚙️ Panel de Gestión")
     st.markdown("---")
 
