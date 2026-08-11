@@ -57,6 +57,20 @@ ESTADOS_CONFIG = {
 
 DIAS_MAP = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado"}
 
+# Mapa de llaves conocidas iniciales
+LLAVES_MUESTRA = {
+    "KURIOS": "02",
+    "CASHEA P9": "01",
+    "CASHEA P18": "Maestra (M)",
+    "CCS S1": "01/02",
+    "CCS S2": "01/02",
+    "FENIX": "02",
+    "TIO AMMI 1": "01/02",
+    "TIO AMMI 2": "01/02",
+    "TU GRUERO": "0613",
+    "UNION RADIO": "02",
+}
+
 LISTA_REAL_MAQUINAS = [
     ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, ""),
     ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, ""),
@@ -142,6 +156,7 @@ def init_db(force_reset=False):
             {
                 "nombre": m[0],
                 "motorizado": m[1],
+                "llave": LLAVES_MUESTRA.get(m[0], "N/A"),
                 "lunes": m[2],
                 "martes": m[3],
                 "miercoles": m[4],
@@ -174,6 +189,13 @@ def cargar_maquinas():
     
     if res.data:
         df = pd.DataFrame(res.data)
+        
+        # Garantizar que la columna 'llave' exista y no tenga valores nulos
+        if "llave" not in df.columns:
+            df["llave"] = "N/A"
+        else:
+            df["llave"] = df["llave"].fillna("N/A").replace("", "N/A")
+
         # Asegurar tipo entero en las columnas de días para compatibilidad
         dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
         for c in dias_cols:
@@ -191,11 +213,12 @@ def cambiar_estado_maquina(m_id, nuevo_estado):
     ).eq("id", m_id).execute()
 
 
-def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
+def agregar_maquina(nombre, motorizado, llave, lunes, martes, miercoles, jueves, viernes, sabado):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
     payload = {
         "nombre": nombre,
         "motorizado": motorizado,
+        "llave": llave.strip() if llave.strip() else "N/A",
         "lunes": int(lunes),
         "martes": int(martes),
         "miercoles": int(miercoles),
@@ -209,10 +232,11 @@ def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, vierne
     supabase.table("maquinas").insert(payload).execute()
 
 
-def actualizar_maquina(m_id, nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
+def actualizar_maquina(m_id, nombre, motorizado, llave, lunes, martes, miercoles, jueves, viernes, sabado):
     payload = {
         "nombre": nombre,
         "motorizado": motorizado,
+        "llave": llave.strip() if llave.strip() else "N/A",
         "lunes": int(lunes),
         "martes": int(martes),
         "miercoles": int(miercoles),
@@ -260,9 +284,18 @@ st.markdown(
     .legend-item { display: inline-flex; align-items: center; font-size: 0.9rem; font-weight: 700; color: #cbd5e1; }
     .moto-badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-weight: 900; font-size: 0.88rem; text-align: center; margin-right: 6px; }
 
-    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-align: center; }
+    .key-badge {
+        display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: 800; font-size: 0.72rem;
+        background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
+    }
+    .key-badge-na {
+        display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;
+        background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 4px; vertical-align: middle;
+    }
+
+    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-align: center; margin-left: 4px; }
     .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
-    .status-EN_RUTA { background-color: #854d0e; color: #fef08a; animation: pulse 2s infinite; }
+    .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
     .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
 
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
@@ -353,6 +386,11 @@ def renderizar_tablero_vertical():
         est = ESTADOS_CONFIG.get(estado, ESTADOS_CONFIG["PENDIENTE"])
         return f'<span class="status-badge status-{estado}">{est["icon"]}</span>'
 
+    def get_key_badge(llave_val):
+        if llave_val and llave_val != "N/A":
+            return f'<span class="key-badge">🔑 {llave_val}</span>'
+        return '<span class="key-badge-na">🔑 N/A</span>'
+
     mitad = (len(df_maquinas) + 1) // 2
     df_col1 = df_maquinas.iloc[:mitad]
     df_col2 = df_maquinas.iloc[mitad:]
@@ -369,6 +407,7 @@ def renderizar_tablero_vertical():
         for _, m in df_sub.iterrows():
             badge_moto = get_moto_badge(m["motorizado"])
             badge_estado = get_status_badge(m["estado"])
+            badge_llave = get_key_badge(m.get("llave", "N/A"))
             c_l = get_cell(m["lunes"])
             c_m = get_cell(m["martes"])
             c_x = get_cell(m["miercoles"])
@@ -380,7 +419,7 @@ def renderizar_tablero_vertical():
 
             rows_list.append(
                 f'<tr class="{row_class}">'
-                f'<td class="location-name">{m["nombre"]} {badge_estado}</td>'
+                f'<td class="location-name">{m["nombre"]} {badge_llave} {badge_estado}</td>'
                 f'<td style="text-align: center;">{badge_moto}</td>'
                 f'<td style="text-align: center;">{c_l}</td>'
                 f'<td style="text-align: center;">{c_m}</td>'
@@ -435,11 +474,20 @@ elif modo == "⚡ Control de Ruta Hoy":
         dia_num = datetime.now().weekday()
         nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
 
-        filt_moto = st.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
+        col_f1, col_f2 = st.columns([1, 2])
+        filt_moto = col_f1.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
+        busqueda_ruta = col_f2.text_input("🔍 Buscar máquina por nombre o llave:", placeholder="Ej: Unimet, 01/02, Cashea...")
 
         df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
+        
         if filt_moto != "Todos":
             df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
+            
+        if busqueda_ruta:
+            df_filtrado = df_filtrado[
+                df_filtrado["nombre"].str.contains(busqueda_ruta, case=False, na=False) |
+                df_filtrado["llave"].str.contains(busqueda_ruta, case=False, na=False)
+            ]
 
         st.subheader(
             f"Máquinas programadas para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
@@ -448,7 +496,8 @@ elif modo == "⚡ Control de Ruta Hoy":
         for index, m in df_filtrado.iterrows():
             col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns([3, 2, 1.5, 1.5, 1.5])
 
-            col_name.markdown(f"**{m['nombre']}** (`{m['motorizado']}`)")
+            llave_str = f"`🔑 {m['llave']}`" if m['llave'] != "N/A" else ""
+            col_name.markdown(f"**{m['nombre']}** {llave_str} (`{m['motorizado']}`)")
 
             est_actual = m["estado"]
             col_status.markdown(
@@ -470,7 +519,7 @@ elif modo == "⚡ Control de Ruta Hoy":
             st.divider()
 
 elif modo == "⚙️ Panel de Gestión":
-    st.title("⚙️ Panel de Gestión")
+    st.title("⚙️ Panel de Gestión y Supervisión")
     st.markdown("---")
 
     pin_ingresado = st.sidebar.text_input("Clave Supervisor:", type="password")
@@ -492,6 +541,7 @@ elif modo == "⚙️ Panel de Gestión":
             with st.form("form_agregar", clear_on_submit=True):
                 nombre_nuevo = st.text_input("Nombre de Ubicación:")
                 moto_nuevo = st.selectbox("Motorizado Asignado:", MOTORIZADOS_DISPONIBLES, index=0)
+                llave_nueva = st.text_input("Tipo / Número de Llave:", value="N/A", placeholder="Ej: 01, 02, Maestra (M), 01/02...")
 
                 st.write("**Días de Recarga:**")
                 c_l, c_m, c_x, c_j, c_v, c_s = st.columns(6)
@@ -508,6 +558,7 @@ elif modo == "⚙️ Panel de Gestión":
                     agregar_maquina(
                         nombre_nuevo,
                         moto_nuevo,
+                        llave_nueva,
                         l_val,
                         m_val,
                         x_val,
@@ -519,14 +570,33 @@ elif modo == "⚙️ Panel de Gestión":
                     st.rerun()
 
         with col_tabla:
-            st.subheader("📋 Modificar / Eliminar")
+            st.subheader("📋 Modificar / Eliminar Ubicaciones")
+            
+            # Buscador en zona de supervisión
+            busqueda_sup = st.text_input(
+                "🔍 Buscador Rápido de Máquinas:", 
+                placeholder="Escriba el nombre de la máquina, motorizado o llave (ej. Cashea, Eduard, 01/02)..."
+            )
+            
             df = cargar_maquinas()
+
+            if busqueda_sup and not df.empty:
+                df = df[
+                    df["nombre"].str.contains(busqueda_sup, case=False, na=False) |
+                    df["motorizado"].str.contains(busqueda_sup, case=False, na=False) |
+                    df["llave"].str.contains(busqueda_sup, case=False, na=False)
+                ]
+
+            st.caption(f"Mostrando {len(df)} máquina(s)")
 
             for index, row in df.iterrows():
                 cfg = MOTORIZADOS_CONFIG.get(row["motorizado"], MOTORIZADOS_CONFIG["Sin Asignar"])
-                with st.expander(f"📌 {row['nombre']} | [{cfg['code']}] {row['motorizado']}"):
+                llave_tag = f" | 🔑 {row['llave']}" if row['llave'] != 'N/A' else ""
+                
+                with st.expander(f"📌 {row['nombre']}{llave_tag} | [{cfg['code']}] {row['motorizado']}"):
                     with st.form(f"form_edit_{row['id']}"):
                         e_nombre = st.text_input("Ubicación:", value=row["nombre"])
+                        e_llave = st.text_input("Tipo / N° de Llave:", value=row["llave"], key=f"llave_{row['id']}")
 
                         idx_moto = (
                             MOTORIZADOS_DISPONIBLES.index(row["motorizado"])
@@ -555,6 +625,7 @@ elif modo == "⚙️ Panel de Gestión":
                                 row["id"],
                                 e_nombre,
                                 e_moto,
+                                e_llave,
                                 e_l,
                                 e_m,
                                 e_x,
@@ -562,6 +633,7 @@ elif modo == "⚙️ Panel de Gestión":
                                 e_v,
                                 e_s,
                             )
+                            st.success("¡Máquina actualizada!")
                             st.rerun()
 
                         if b2.form_submit_button("🗑️ Eliminar"):
