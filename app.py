@@ -1,14 +1,13 @@
 """
-Sistema de Control Logístico y Distribución en Streamlit
+Sistema de Control Logístico y Distribución en Streamlit + Supabase
 Tablero TV 43" - Control de Estado en Tiempo Real (Pendiente / En Ruta / Completado)
 """
 
 import os
-import sqlite3
-import tempfile
 from datetime import datetime
 import pandas as pd
 import streamlit as st
+from supabase import create_client, Client
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
@@ -20,7 +19,20 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-DB_NAME = os.path.join(tempfile.gettempdir(), "logistica_streamlit_v2.db")
+# ---------------------------------------------------------
+# CONEXIÓN CON SUPABASE
+# ---------------------------------------------------------
+@st.cache_resource
+def init_supabase() -> Client:
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"⚠️ Error al conectar con Supabase. Revisa .streamlit/secrets.toml: {e}")
+        st.stop()
+
+supabase = init_supabase()
 
 try:
     SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
@@ -111,143 +123,108 @@ LISTA_REAL_MAQUINAS = [
 
 
 # ---------------------------------------------------------
-# BASE DE DATOS CON MIGRACIÓN Y CONTROL DE ESTADO
+# FUNCIONES DE BASE DE DATOS (SUPABASE)
 # ---------------------------------------------------------
-def get_db_connection():
-    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
 def init_db(force_reset=False):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        if force_reset:
-            cursor.execute("DROP TABLE IF EXISTS maquinas")
+    """Inicializa o reinicia la base de datos en Supabase con los 61 registros."""
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    
+    # Comprobar registros existentes
+    res = supabase.table("maquinas").select("id", count="exact").execute()
+    total = res.count if res.count is not None else len(res.data)
 
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS maquinas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                motorizado TEXT DEFAULT 'Sin Asignar',
-                lunes INTEGER DEFAULT 0,
-                martes INTEGER DEFAULT 0,
-                miercoles INTEGER DEFAULT 0,
-                jueves INTEGER DEFAULT 0,
-                viernes INTEGER DEFAULT 0,
-                sabado INTEGER DEFAULT 0,
-                observaciones TEXT DEFAULT '',
-                estado TEXT DEFAULT 'PENDIENTE',
-                fecha_estado TEXT DEFAULT ''
-            )
-            """
-        )
-
-        cursor.execute("PRAGMA table_info(maquinas)")
-        columnas = [col[1] for col in cursor.fetchall()]
-        if "estado" not in columnas:
-            cursor.execute("ALTER TABLE maquinas ADD COLUMN estado TEXT DEFAULT 'PENDIENTE'")
-        if "fecha_estado" not in columnas:
-            cursor.execute("ALTER TABLE maquinas ADD COLUMN fecha_estado TEXT DEFAULT ''")
-
-        cursor.execute("SELECT COUNT(*) FROM maquinas")
-        total = cursor.fetchone()[0]
-
-        if total == 0 or force_reset:
-            cursor.execute("DELETE FROM maquinas")
-            cursor.executemany(
-                """
-                INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones, estado, fecha_estado)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', '')
-                """,
-                LISTA_REAL_MAQUINAS,
-            )
-            conn.commit()
-
+    if total == 0 or force_reset:
+        # Limpiar tabla
+        supabase.table("maquinas").delete().neq("id", 0).execute()
+        
+        # Mapear e insertar datos iniciales
+        payload = [
+            {
+                "nombre": m[0],
+                "motorizado": m[1],
+                "lunes": m[2],
+                "martes": m[3],
+                "miercoles": m[4],
+                "jueves": m[5],
+                "viernes": m[6],
+                "sabado": m[7],
+                "observaciones": m[8],
+                "estado": "PENDIENTE",
+                "fecha_estado": hoy_str,
+            }
+            for m in LISTA_REAL_MAQUINAS
+        ]
+        
+        # Inserción por lotes
+        supabase.table("maquinas").insert(payload).execute()
 
 init_db()
 
 
 def cargar_maquinas():
+    """Carga los registros de Supabase y resetea estados si cambió el día."""
     hoy_str = datetime.now().strftime("%Y-%m-%d")
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            UPDATE maquinas 
-            SET estado = 'PENDIENTE', fecha_estado = ? 
-            WHERE fecha_estado != ? OR fecha_estado IS NULL
-            """,
-            (hoy_str, hoy_str),
-        )
-        conn.commit()
-        return pd.read_sql_query("SELECT * FROM maquinas ORDER BY id ASC", conn)
+    
+    # Resetear estado a PENDIENTE si la fecha del estado no coincide con hoy
+    supabase.table("maquinas").update(
+        {"estado": "PENDIENTE", "fecha_estado": hoy_str}
+    ).neq("fecha_estado", hoy_str).execute()
+
+    res = supabase.table("maquinas").select("*").order("id").execute()
+    
+    if res.data:
+        df = pd.DataFrame(res.data)
+        # Asegurar tipo entero en las columnas de días para compatibilidad
+        dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
+        for c in dias_cols:
+            if c in df.columns:
+                df[c] = df[c].astype(int)
+        return df
+    
+    return pd.DataFrame()
 
 
 def cambiar_estado_maquina(m_id, nuevo_estado):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE maquinas SET estado=?, fecha_estado=? WHERE id=?",
-            (nuevo_estado, hoy_str, m_id),
-        )
-        conn.commit()
+    supabase.table("maquinas").update(
+        {"estado": nuevo_estado, "fecha_estado": hoy_str}
+    ).eq("id", m_id).execute()
 
 
 def agregar_maquina(nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO maquinas (nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado, observaciones, estado, fecha_estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', 'PENDIENTE', ?)
-            """,
-            (
-                nombre,
-                motorizado,
-                int(lunes),
-                int(martes),
-                int(miercoles),
-                int(jueves),
-                int(viernes),
-                int(sabado),
-                hoy_str,
-            ),
-        )
-        conn.commit()
+    payload = {
+        "nombre": nombre,
+        "motorizado": motorizado,
+        "lunes": int(lunes),
+        "martes": int(martes),
+        "miercoles": int(miercoles),
+        "jueves": int(jueves),
+        "viernes": int(viernes),
+        "sabado": int(sabado),
+        "observaciones": "",
+        "estado": "PENDIENTE",
+        "fecha_estado": hoy_str,
+    }
+    supabase.table("maquinas").insert(payload).execute()
 
 
 def actualizar_maquina(m_id, nombre, motorizado, lunes, martes, miercoles, jueves, viernes, sabado):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            UPDATE maquinas SET nombre=?, motorizado=?, lunes=?, martes=?, miercoles=?, jueves=?, viernes=?, sabado=?
-            WHERE id=?
-            """,
-            (
-                nombre,
-                motorizado,
-                int(lunes),
-                int(martes),
-                int(miercoles),
-                int(jueves),
-                int(viernes),
-                int(sabado),
-                m_id,
-            ),
-        )
-        conn.commit()
+    payload = {
+        "nombre": nombre,
+        "motorizado": motorizado,
+        "lunes": int(lunes),
+        "martes": int(martes),
+        "miercoles": int(miercoles),
+        "jueves": int(jueves),
+        "viernes": int(viernes),
+        "sabado": int(sabado),
+    }
+    supabase.table("maquinas").update(payload).eq("id", m_id).execute()
 
 
 def eliminar_maquina(m_id):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM maquinas WHERE id=?", (m_id,))
-        conn.commit()
+    supabase.table("maquinas").delete().eq("id", m_id).execute()
 
 
 # ---------------------------------------------------------
@@ -321,6 +298,10 @@ def renderizar_tablero_vertical():
     dia_num = dt_now.weekday()
 
     df_maquinas = cargar_maquinas()
+
+    if df_maquinas.empty:
+        st.warning("No hay máquinas registradas en la base de datos de Supabase.")
+        return
 
     nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
     df_hoy = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
@@ -447,42 +428,46 @@ elif modo == "⚡ Control de Ruta Hoy":
     st.markdown("Marque el estado de cada ubicación a medida que se realiza la ruta:")
 
     df_maquinas = cargar_maquinas()
-    dia_num = datetime.now().weekday()
-    nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
+    
+    if df_maquinas.empty:
+        st.info("No existen máquinas guardadas.")
+    else:
+        dia_num = datetime.now().weekday()
+        nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
 
-    filt_moto = st.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
+        filt_moto = st.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
 
-    df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
-    if filt_moto != "Todos":
-        df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
+        df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
+        if filt_moto != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
 
-    st.subheader(
-        f"Máquinas programadas para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
-    )
-
-    for index, m in df_filtrado.iterrows():
-        col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns([3, 2, 1.5, 1.5, 1.5])
-
-        col_name.markdown(f"**{m['nombre']}** (`{m['motorizado']}`)")
-
-        est_actual = m["estado"]
-        col_status.markdown(
-            f"{ESTADOS_CONFIG[est_actual]['icon']} **{ESTADOS_CONFIG[est_actual]['label']}**"
+        st.subheader(
+            f"Máquinas programadas para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
         )
 
-        if col_btn1.button("⚪ Pendiente", key=f"p_{m['id']}"):
-            cambiar_estado_maquina(m["id"], "PENDIENTE")
-            st.rerun()
+        for index, m in df_filtrado.iterrows():
+            col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns([3, 2, 1.5, 1.5, 1.5])
 
-        if col_btn2.button("🟡 En Ruta", key=f"r_{m['id']}"):
-            cambiar_estado_maquina(m["id"], "EN_RUTA")
-            st.rerun()
+            col_name.markdown(f"**{m['nombre']}** (`{m['motorizado']}`)")
 
-        if col_btn3.button("🟢 Completado", key=f"c_{m['id']}"):
-            cambiar_estado_maquina(m["id"], "COMPLETADO")
-            st.rerun()
+            est_actual = m["estado"]
+            col_status.markdown(
+                f"{ESTADOS_CONFIG[est_actual]['icon']} **{ESTADOS_CONFIG[est_actual]['label']}**"
+            )
 
-        st.divider()
+            if col_btn1.button("⚪ Pendiente", key=f"p_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "PENDIENTE")
+                st.rerun()
+
+            if col_btn2.button("🟡 En Ruta", key=f"r_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "EN_RUTA")
+                st.rerun()
+
+            if col_btn3.button("🟢 Completado", key=f"c_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "COMPLETADO")
+                st.rerun()
+
+            st.divider()
 
 elif modo == "⚙️ Panel de Gestión":
     st.title("⚙️ Panel de Gestión")
@@ -497,7 +482,7 @@ elif modo == "⚙️ Panel de Gestión":
 
         if st.sidebar.button("🔄 Recargar las 61 Ubicaciones Iniciales"):
             init_db(force_reset=True)
-            st.sidebar.success("¡Base de datos restablecida con éxito!")
+            st.sidebar.success("¡Base de datos restablecida en Supabase con éxito!")
             st.rerun()
 
         col_form, col_tabla = st.columns([1, 2])
@@ -530,7 +515,7 @@ elif modo == "⚙️ Panel de Gestión":
                         v_val,
                         s_val,
                     )
-                    st.success("Ubicación agregada.")
+                    st.success("Ubicación agregada en Supabase.")
                     st.rerun()
 
         with col_tabla:
