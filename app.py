@@ -20,24 +20,24 @@ st.set_page_config(
 # ---------------------------------------------------------
 @st.cache_resource
 def init_supabase() -> Client:
-  try:
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
-  except Exception as e:
-    st.error(
-        f"⚠️ Error al conectar con Supabase. Revisa .streamlit/secrets.toml:"
-        f" {e}"
-    )
-    st.stop()
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error(
+            f"⚠️ Error al conectar con Supabase. Revisa .streamlit/secrets.toml:"
+            f" {e}"
+        )
+        st.stop()
 
 
 supabase = init_supabase()
 
 try:
-  SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
+    SUPERVISOR_PIN = st.secrets.get("SUPERVISOR_PIN", "1234")
 except Exception:
-  SUPERVISOR_PIN = "1234"
+    SUPERVISOR_PIN = "1234"
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE ENTIDADES Y ESTADOS
@@ -164,90 +164,90 @@ LISTA_REAL_MAQUINAS = [
 # FUNCIONES DE BASE DE DATOS (SUPABASE)
 # ---------------------------------------------------------
 def init_db(force_reset=False):
-  hoy_str = datetime.now().strftime("%Y-%m-%d")
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
 
-  res = supabase.table("maquinas").select("id", count="exact").execute()
-  total = res.count if res.count is not None else len(res.data)
+    res = supabase.table("maquinas").select("id", count="exact").execute()
+    total = res.count if res.count is not None else len(res.data)
 
-  if total == 0 or force_reset:
-    supabase.table("maquinas").delete().neq("id", 0).execute()
+    if total == 0 or force_reset:
+        supabase.table("maquinas").delete().neq("id", 0).execute()
 
-    payload = [
-        {
-            "nombre": m[0],
-            "motorizado": m[1],
-            "llave": LLAVES_MUESTRA.get(m[0], "N/A"),
-            "lunes": m[2],
-            "martes": m[3],
-            "miercoles": m[4],
-            "jueves": m[5],
-            "viernes": m[6],
-            "sabado": m[7],
-            "observaciones": m[8],
-            "estado": "PENDIENTE",
-            "fecha_estado": hoy_str,
-        }
-        for m in LISTA_REAL_MAQUINAS
-    ]
+        payload = [
+            {
+                "nombre": m[0],
+                "motorizado": m[1],
+                "llave": LLAVES_MUESTRA.get(m[0], "N/A"),
+                "lunes": m[2],
+                "martes": m[3],
+                "miercoles": m[4],
+                "jueves": m[5],
+                "viernes": m[6],
+                "sabado": m[7],
+                "observaciones": m[8],
+                "estado": "PENDIENTE",
+                "fecha_estado": hoy_str,
+            }
+            for m in LISTA_REAL_MAQUINAS
+        ]
 
-    supabase.table("maquinas").insert(payload).execute()
+        supabase.table("maquinas").insert(payload).execute()
 
 
 init_db()
 
 
 def cargar_maquinas():
-  hoy_str = datetime.now().strftime("%Y-%m-%d")
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
 
-  supabase.table("maquinas").update(
-      {"estado": "PENDIENTE", "fecha_estado": hoy_str}
-  ).neq("fecha_estado", hoy_str).execute()
+    supabase.table("maquinas").update(
+        {"estado": "PENDIENTE", "fecha_estado": hoy_str}
+    ).neq("fecha_estado", hoy_str).execute()
 
-  res = supabase.table("maquinas").select("*").order("id").execute()
+    res = supabase.table("maquinas").select("*").order("id").execute()
 
-  if res.data:
-    df = pd.DataFrame(res.data)
+    if res.data:
+        df = pd.DataFrame(res.data)
 
-    if "llave" not in df.columns:
-      df["llave"] = "N/A"
-    else:
-      df["llave"] = df["llave"].fillna("N/A").replace("", "N/A")
+        if "llave" not in df.columns:
+            df["llave"] = "N/A"
+        else:
+            df["llave"] = df["llave"].fillna("N/A").replace("", "N/A")
 
-    dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
-    for c in dias_cols:
-      if c in df.columns:
-        df[c] = df[c].astype(int)
-    return df
+        dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
+        for c in dias_cols:
+            if c in df.columns:
+                df[c] = df[c].astype(int)
+        return df
 
-  return pd.DataFrame()
+    return pd.DataFrame()
 
 
 def cambiar_estado_maquina(m_id, nuevo_estado):
-  hoy_str = datetime.now().strftime("%Y-%m-%d")
-  supabase.table("maquinas").update(
-      {"estado": nuevo_estado, "fecha_estado": hoy_str}
-  ).eq("id", m_id).execute()
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    supabase.table("maquinas").update(
+        {"estado": nuevo_estado, "fecha_estado": hoy_str}
+    ).eq("id", m_id).execute()
 
 
 def agregar_maquina(
     nombre, motorizado, llave, lunes, martes, miercoles, jueves, viernes, sabado
 ):
-  hoy_str = datetime.now().strftime("%Y-%m-%d")
-  payload = {
-      "nombre": nombre,
-      "motorizado": motorizado,
-      "llave": llave.strip() if llave.strip() else "N/A",
-      "lunes": int(lunes),
-      "martes": int(martes),
-      "miercoles": int(miercoles),
-      "jueves": int(jueves),
-      "viernes": int(viernes),
-      "sabado": int(sabado),
-      "observaciones": "",
-      "estado": "PENDIENTE",
-      "fecha_estado": hoy_str,
-  }
-  supabase.table("maquinas").insert(payload).execute()
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    payload = {
+        "nombre": nombre,
+        "motorizado": motorizado,
+        "llave": llave.strip() if llave.strip() else "N/A",
+        "lunes": int(lunes),
+        "martes": int(martes),
+        "miercoles": int(miercoles),
+        "jueves": int(jueves),
+        "viernes": int(viernes),
+        "sabado": int(sabado),
+        "observaciones": "",
+        "estado": "PENDIENTE",
+        "fecha_estado": hoy_str,
+    }
+    supabase.table("maquinas").insert(payload).execute()
 
 
 def actualizar_maquina(
@@ -262,37 +262,38 @@ def actualizar_maquina(
     viernes,
     sabado,
 ):
-  payload = {
-      "nombre": nombre,
-      "motorizado": motorizado,
-      "llave": llave.strip() if llave.strip() else "N/A",
-      "lunes": int(lunes),
-      "martes": int(martes),
-      "miercoles": int(miercoles),
-      "jueves": int(jueves),
-      "viernes": int(viernes),
-      "sabado": int(sabado),
-  }
-  supabase.table("maquinas").update(payload).eq("id", m_id).execute()
+    payload = {
+        "nombre": nombre,
+        "motorizado": motorizado,
+        "llave": llave.strip() if llave.strip() else "N/A",
+        "lunes": int(lunes),
+        "martes": int(martes),
+        "miercoles": int(miercoles),
+        "jueves": int(jueves),
+        "viernes": int(viernes),
+        "sabado": int(sabado),
+    }
+    supabase.table("maquinas").update(payload).eq("id", m_id).execute()
 
 
 def eliminar_maquina(m_id):
-  supabase.table("maquinas").delete().eq("id", m_id).execute()
+    supabase.table("maquinas").delete().eq("id", m_id).execute()
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (BOTÓN FLOTANTE VISIBLE Y TAMAÑO AMPLIADO)
+# ESTILOS CSS CORREGIDOS (BOTÓN DESPLEGABLE VISIBLE Y CLIQUEABLE)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Header transparente (sin colapsar la altura para permitir renderizado de botones) */
+    /* 1. Evitar que la cabecera capture eventos de clic */
     header[data-testid="stHeader"] {
         background: transparent !important;
         z-index: 99999 !important;
+        pointer-events: none !important;
     }
 
-    /* Ocultar elementos secundarios del header */
+    /* Ocultar elementos secundarios de la barra superior */
     [data-testid="stToolbar"], 
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
@@ -300,11 +301,12 @@ st.markdown(
         display: none !important; 
     }
 
-    /* 2. Forzar visibilidad y resaltado del botón del sidebar en la esquina superior izquierda */
+    /* 2. Forzar visibilidad, interacción y estilo para el botón desplegable del menú */
     [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
     button[aria-label="Open sidebar"],
     button[aria-label="Expand sidebar"],
-    section[data-testid="stSidebar"] + div button {
+    button[aria-label="Close sidebar"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -312,19 +314,43 @@ st.markdown(
         top: 10px !important;
         left: 10px !important;
         z-index: 1000000 !important;
+        pointer-events: auto !important;
         background-color: #1e293b !important;
         border: 2px solid #38bdf8 !important;
         border-radius: 8px !important;
-        box-shadow: 0px 0px 10px rgba(56, 189, 248, 0.6) !important;
+        padding: 6px !important;
+        cursor: pointer !important;
+        box-shadow: 0px 0px 12px rgba(56, 189, 248, 0.8) !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
+    /* Estilo del ícono SVG dentro del botón */
     [data-testid="stSidebarCollapsedControl"] svg,
-    button[aria-label="Open sidebar"] svg {
+    [data-testid="stSidebarCollapseButton"] svg,
+    button[aria-label="Open sidebar"] svg,
+    button[aria-label="Close sidebar"] svg {
         fill: #38bdf8 !important;
         color: #38bdf8 !important;
+        width: 22px !important;
+        height: 22px !important;
     }
 
-    /* Ocultar scrollbars */
+    /* Efecto al pasar el cursor sobre el botón desplegable */
+    [data-testid="stSidebarCollapsedControl"]:hover,
+    [data-testid="stSidebarCollapseButton"]:hover,
+    button[aria-label="Open sidebar"]:hover {
+        background-color: #38bdf8 !important;
+        border-color: #ffffff !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"]:hover svg,
+    [data-testid="stSidebarCollapseButton"]:hover svg,
+    button[aria-label="Open sidebar"]:hover svg {
+        fill: #0b1329 !important;
+        color: #0b1329 !important;
+    }
+
+    /* Ocultar scrollbars por estética de TV */
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
@@ -376,7 +402,7 @@ st.markdown(
     /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    /* Rejilla y Tablas con Altura Completa */
+    /* Rejilla y Tablas */
     .tv-grid { display: flex; flex-direction: row; gap: 10px; width: 100%; }
     .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
@@ -389,7 +415,6 @@ st.markdown(
     }
     .tv-table th.center-header { text-align: center; }
     
-    /* Incremento del padding vertical para abarcar la pantalla completa */
     .tv-table td { 
         padding: clamp(4px, 0.55vh, 8px) 0.5rem !important; 
         border-bottom: 1px solid #172338; 
@@ -418,100 +443,100 @@ st.markdown(
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical():
-  dt_now = datetime.now()
-  dia_num = dt_now.weekday()
+    dt_now = datetime.now()
+    dia_num = dt_now.weekday()
 
-  df_maquinas = cargar_maquinas()
+    df_maquinas = cargar_maquinas()
 
-  if df_maquinas.empty:
-    st.warning("No hay máquinas registradas en la base de datos de Supabase.")
-    return
+    if df_maquinas.empty:
+        st.warning("No hay máquinas registradas en la base de datos de Supabase.")
+        return
 
-  def get_cell(active, is_sat=False):
-    if active:
-      cls = "day-check-sat" if is_sat else "day-check"
-      return f'<span class="{cls}">✓</span>'
-    return '<span class="day-off">-</span>'
+    def get_cell(active, is_sat=False):
+        if active:
+            cls = "day-check-sat" if is_sat else "day-check"
+            return f'<span class="{cls}">✓</span>'
+        return '<span class="day-off">-</span>'
 
-  def get_moto_badge(motorizado_nombre):
-    cfg = MOTORIZADOS_CONFIG.get(
-        motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"]
+    def get_moto_badge(motorizado_nombre):
+        cfg = MOTORIZADOS_CONFIG.get(
+            motorizado_nombre, MOTORIZADOS_CONFIG["Sin Asignar"]
+        )
+        return (
+            f'<span class="moto-badge" style="background-color: {cfg["bg"]};'
+            f' color: {cfg["color"]};">{cfg["code"]}</span>'
+        )
+
+    def get_status_badge(estado):
+        est = ESTADOS_CONFIG.get(estado, ESTADOS_CONFIG["PENDIENTE"])
+        return f'<span class="status-badge status-{estado}">{est["icon"]}</span>'
+
+    def get_key_badge(llave_val):
+        if llave_val and llave_val != "N/A":
+            return f'<span class="key-badge">🔑 {llave_val}</span>'
+        return '<span class="key-badge-na">🔑 N/A</span>'
+
+    mitad = (len(df_maquinas) + 1) // 2
+    df_col1 = df_maquinas.iloc[:mitad]
+    df_col2 = df_maquinas.iloc[mitad:]
+
+    h_l = "today-col-header" if dia_num == 0 else ""
+    h_m = "today-col-header" if dia_num == 1 else ""
+    h_x = "today-col-header" if dia_num == 2 else ""
+    h_j = "today-col-header" if dia_num == 3 else ""
+    h_v = "today-col-header" if dia_num == 4 else ""
+    h_s = "today-col-header" if dia_num == 5 else ""
+
+    def construir_tabla_html(df_sub):
+        rows_list = []
+        for _, m in df_sub.iterrows():
+            badge_moto = get_moto_badge(m["motorizado"])
+            badge_estado = get_status_badge(m["estado"])
+            badge_llave = get_key_badge(m.get("llave", "N/A"))
+            c_l = get_cell(m["lunes"])
+            c_m = get_cell(m["martes"])
+            c_x = get_cell(m["miercoles"])
+            c_j = get_cell(m["jueves"])
+            c_v = get_cell(m["viernes"])
+            c_s = get_cell(m["sabado"], is_sat=True)
+
+            row_class = f"row-{m['estado']}" if m["estado"] == "COMPLETADO" else ""
+
+            rows_list.append(
+                f'<tr class="{row_class}">'
+                f'<td class="location-name">{m["nombre"]} {badge_llave}'
+                f' {badge_estado}</td>'
+                f'<td style="text-align: center;">{badge_moto}</td>'
+                f'<td style="text-align: center;">{c_l}</td>'
+                f'<td style="text-align: center;">{c_m}</td>'
+                f'<td style="text-align: center;">{c_x}</td>'
+                f'<td style="text-align: center;">{c_j}</td>'
+                f'<td style="text-align: center;">{c_v}</td>'
+                f'<td style="text-align: center;">{c_s}</td>'
+                "</tr>"
+            )
+
+        html_rows = "".join(rows_list)
+        return (
+            f'<div class="tv-column"><table class="tv-table"><thead><tr>'
+            f'<th style="width: 44%;">UBICACIÓN</th>'
+            f'<th class="center-header" style="width: 14%;">RESP.</th>'
+            f'<th class="center-header {h_l}" style="width: 7%;">L</th>'
+            f'<th class="center-header {h_m}" style="width: 7%;">M</th>'
+            f'<th class="center-header {h_x}" style="width: 7%;">X</th>'
+            f'<th class="center-header {h_j}" style="width: 7%;">J</th>'
+            f'<th class="center-header {h_v}" style="width: 7%;">V</th>'
+            f'<th class="center-header {h_s}" style="width: 7%;">S</th>'
+            f"</tr></thead><tbody>{html_rows}</tbody></table></div>"
+        )
+
+    tabla1_html = construir_tabla_html(df_col1)
+    tabla2_html = construir_tabla_html(df_col2)
+
+    st.markdown(
+        f'<div class="tv-grid">{tabla1_html}{tabla2_html}</div>',
+        unsafe_allow_html=True,
     )
-    return (
-        f'<span class="moto-badge" style="background-color: {cfg["bg"]};'
-        f' color: {cfg["color"]};">{cfg["code"]}</span>'
-    )
-
-  def get_status_badge(estado):
-    est = ESTADOS_CONFIG.get(estado, ESTADOS_CONFIG["PENDIENTE"])
-    return f'<span class="status-badge status-{estado}">{est["icon"]}</span>'
-
-  def get_key_badge(llave_val):
-    if llave_val and llave_val != "N/A":
-      return f'<span class="key-badge">🔑 {llave_val}</span>'
-    return '<span class="key-badge-na">🔑 N/A</span>'
-
-  mitad = (len(df_maquinas) + 1) // 2
-  df_col1 = df_maquinas.iloc[:mitad]
-  df_col2 = df_maquinas.iloc[mitad:]
-
-  h_l = "today-col-header" if dia_num == 0 else ""
-  h_m = "today-col-header" if dia_num == 1 else ""
-  h_x = "today-col-header" if dia_num == 2 else ""
-  h_j = "today-col-header" if dia_num == 3 else ""
-  h_v = "today-col-header" if dia_num == 4 else ""
-  h_s = "today-col-header" if dia_num == 5 else ""
-
-  def construir_tabla_html(df_sub):
-    rows_list = []
-    for _, m in df_sub.iterrows():
-      badge_moto = get_moto_badge(m["motorizado"])
-      badge_estado = get_status_badge(m["estado"])
-      badge_llave = get_key_badge(m.get("llave", "N/A"))
-      c_l = get_cell(m["lunes"])
-      c_m = get_cell(m["martes"])
-      c_x = get_cell(m["miercoles"])
-      c_j = get_cell(m["jueves"])
-      c_v = get_cell(m["viernes"])
-      c_s = get_cell(m["sabado"], is_sat=True)
-
-      row_class = f"row-{m['estado']}" if m["estado"] == "COMPLETADO" else ""
-
-      rows_list.append(
-          f'<tr class="{row_class}">'
-          f'<td class="location-name">{m["nombre"]} {badge_llave}'
-          f' {badge_estado}</td>'
-          f'<td style="text-align: center;">{badge_moto}</td>'
-          f'<td style="text-align: center;">{c_l}</td>'
-          f'<td style="text-align: center;">{c_m}</td>'
-          f'<td style="text-align: center;">{c_x}</td>'
-          f'<td style="text-align: center;">{c_j}</td>'
-          f'<td style="text-align: center;">{c_v}</td>'
-          f'<td style="text-align: center;">{c_s}</td>'
-          "</tr>"
-      )
-
-    html_rows = "".join(rows_list)
-    return (
-        f'<div class="tv-column"><table class="tv-table"><thead><tr>'
-        f'<th style="width: 44%;">UBICACIÓN</th>'
-        f'<th class="center-header" style="width: 14%;">RESP.</th>'
-        f'<th class="center-header {h_l}" style="width: 7%;">L</th>'
-        f'<th class="center-header {h_m}" style="width: 7%;">M</th>'
-        f'<th class="center-header {h_x}" style="width: 7%;">X</th>'
-        f'<th class="center-header {h_j}" style="width: 7%;">J</th>'
-        f'<th class="center-header {h_v}" style="width: 7%;">V</th>'
-        f'<th class="center-header {h_s}" style="width: 7%;">S</th>'
-        f"</tr></thead><tbody>{html_rows}</tbody></table></div>"
-    )
-
-  tabla1_html = construir_tabla_html(df_col1)
-  tabla2_html = construir_tabla_html(df_col2)
-
-  st.markdown(
-      f'<div class="tv-grid">{tabla1_html}{tabla2_html}</div>',
-      unsafe_allow_html=True,
-  )
 
 
 # ---------------------------------------------------------
@@ -524,221 +549,221 @@ modo = st.sidebar.radio(
 )
 
 if modo == "📱 Tablero TV (En Vivo)":
-  renderizar_tablero_vertical()
+    renderizar_tablero_vertical()
 
 elif modo == "⚡ Control de Ruta Hoy":
-  st.title("⚡ Control de Avance de Ruta (Hoy)")
-  st.markdown("Actualice el estado operacional de cada punto según la ruta del día:")
+    st.title("⚡ Control de Avance de Ruta (Hoy)")
+    st.markdown("Actualice el estado operacional de cada punto según la ruta del día:")
 
-  df_maquinas = cargar_maquinas()
+    df_maquinas = cargar_maquinas()
 
-  if df_maquinas.empty:
-    st.info("No existen máquinas registradas.")
-  else:
-    dia_num = datetime.now().weekday()
-    nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
+    if df_maquinas.empty:
+        st.info("No existen máquinas registradas.")
+    else:
+        dia_num = datetime.now().weekday()
+        nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
 
-    col_f1, col_f2 = st.columns([1, 2])
-    filt_moto = col_f1.selectbox(
-        "Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES
-    )
-    busqueda_ruta = col_f2.text_input(
-        "🔍 Buscar ubicación o llave:",
-        placeholder="Ej: Unimet, 01/02, Cashea...",
-    )
+        col_f1, col_f2 = st.columns([1, 2])
+        filt_moto = col_f1.selectbox(
+            "Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES
+        )
+        busqueda_ruta = col_f2.text_input(
+            "🔍 Buscar ubicación o llave:",
+            placeholder="Ej: Unimet, 01/02, Cashea...",
+        )
 
-    df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
+        df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
 
-    if filt_moto != "Todos":
-      df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
+        if filt_moto != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["motorizado"] == filt_moto]
 
-    if busqueda_ruta:
-      df_filtrado = df_filtrado[
-          df_filtrado["nombre"].str.contains(
-              busqueda_ruta, case=False, na=False
-          )
-          | df_filtrado["llave"].str.contains(
-              busqueda_ruta, case=False, na=False
-          )
-      ]
+        if busqueda_ruta:
+            df_filtrado = df_filtrado[
+                df_filtrado["nombre"].str.contains(
+                    busqueda_ruta, case=False, na=False
+                )
+                | df_filtrado["llave"].str.contains(
+                    busqueda_ruta, case=False, na=False
+                )
+            ]
 
-    st.subheader(
-        f"Puntos asignados para hoy ({nombre_dia_hoy.upper()}):"
-        f" {len(df_filtrado)}"
-    )
+        st.subheader(
+            f"Puntos asignados para hoy ({nombre_dia_hoy.upper()}):"
+            f" {len(df_filtrado)}"
+        )
 
-    for index, m in df_filtrado.iterrows():
-      col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns(
-          [3, 2, 1.5, 1.5, 1.5]
-      )
+        for index, m in df_filtrado.iterrows():
+            col_name, col_status, col_btn1, col_btn2, col_btn3 = st.columns(
+                [3, 2, 1.5, 1.5, 1.5]
+            )
 
-      llave_str = f"`🔑 {m['llave']}`" if m["llave"] != "N/A" else ""
-      col_name.markdown(f"**{m['nombre']}** {llave_str} (`{m['motorizado']}`)")
+            llave_str = f"`🔑 {m['llave']}`" if m["llave"] != "N/A" else ""
+            col_name.markdown(f"**{m['nombre']}** {llave_str} (`{m['motorizado']}`)")
 
-      est_actual = m["estado"]
-      col_status.markdown(
-          f"{ESTADOS_CONFIG[est_actual]['icon']} **{ESTADOS_CONFIG[est_actual]['label']}**"
-      )
+            est_actual = m["estado"]
+            col_status.markdown(
+                f"{ESTADOS_CONFIG[est_actual]['icon']} **{ESTADOS_CONFIG[est_actual]['label']}**"
+            )
 
-      if col_btn1.button("⚪ Pendiente", key=f"p_{m['id']}"):
-        cambiar_estado_maquina(m["id"], "PENDIENTE")
-        st.rerun()
+            if col_btn1.button("⚪ Pendiente", key=f"p_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "PENDIENTE")
+                st.rerun()
 
-      if col_btn2.button("🟡 En Ruta", key=f"r_{m['id']}"):
-        cambiar_estado_maquina(m["id"], "EN_RUTA")
-        st.rerun()
+            if col_btn2.button("🟡 En Ruta", key=f"r_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "EN_RUTA")
+                st.rerun()
 
-      if col_btn3.button("🟢 Completado", key=f"c_{m['id']}"):
-        cambiar_estado_maquina(m["id"], "COMPLETADO")
-        st.rerun()
+            if col_btn3.button("🟢 Completado", key=f"c_{m['id']}"):
+                cambiar_estado_maquina(m["id"], "COMPLETADO")
+                st.rerun()
 
-      st.divider()
+            st.divider()
 
 elif modo == "⚙️ Panel de Gestión":
-  st.title("⚙️ Panel de Gestión y Supervisión")
-  st.markdown("---")
+    st.title("⚙️ Panel de Gestión y Supervisión")
+    st.markdown("---")
 
-  pin_ingresado = st.sidebar.text_input("Clave Supervisor:", type="password")
+    pin_ingresado = st.sidebar.text_input("Clave Supervisor:", type="password")
 
-  if pin_ingresado != SUPERVISOR_PIN:
-    st.warning("🔒 Ingrese la clave de supervisor correcta para editar.")
-  else:
-    st.success("🔓 Acceso concedido.")
+    if pin_ingresado != SUPERVISOR_PIN:
+        st.warning("🔒 Ingrese la clave de supervisor correcta para editar.")
+    else:
+        st.success("🔓 Acceso concedido.")
 
-    if st.sidebar.button("🔄 Recargar Ubicaciones Iniciales"):
-      init_db(force_reset=True)
-      st.sidebar.success(
-          "¡Base de datos restablecida en Supabase con éxito!"
-      )
-      st.rerun()
+        if st.sidebar.button("🔄 Recargar Ubicaciones Iniciales"):
+            init_db(force_reset=True)
+            st.sidebar.success(
+                "¡Base de datos restablecida en Supabase con éxito!"
+            )
+            st.rerun()
 
-    col_form, col_tabla = st.columns([1, 2])
+        col_form, col_tabla = st.columns([1, 2])
 
-    with col_form:
-      st.subheader("➕ Agregar Nueva Ubicación")
-      with st.form("form_agregar", clear_on_submit=True):
-        nombre_nuevo = st.text_input("Nombre de Ubicación:")
-        moto_nuevo = st.selectbox(
-            "Motorizado Asignado:", MOTORIZADOS_DISPONIBLES, index=0
-        )
-        llave_nueva = st.text_input(
-            "Tipo / Número de Llave:",
-            value="N/A",
-            placeholder="Ej: 01, 02, Maestra (M), 01/02...",
-        )
+        with col_form:
+            st.subheader("➕ Agregar Nueva Ubicación")
+            with st.form("form_agregar", clear_on_submit=True):
+                nombre_nuevo = st.text_input("Nombre de Ubicación:")
+                moto_nuevo = st.selectbox(
+                    "Motorizado Asignado:", MOTORIZADOS_DISPONIBLES, index=0
+                )
+                llave_nueva = st.text_input(
+                    "Tipo / Número de Llave:",
+                    value="N/A",
+                    placeholder="Ej: 01, 02, Maestra (M), 01/02...",
+                )
 
-        st.write("**Días de Recarga:**")
-        c_l, c_m, c_x, c_j, c_v, c_s = st.columns(6)
-        l_val = c_l.checkbox("L", value=True)
-        m_val = c_m.checkbox("M", value=False)
-        x_val = c_x.checkbox("X", value=False)
-        j_val = c_j.checkbox("J", value=False)
-        v_val = c_v.checkbox("V", value=False)
-        s_val = c_s.checkbox("S", value=False)
+                st.write("**Días de Recarga:**")
+                c_l, c_m, c_x, c_j, c_v, c_s = st.columns(6)
+                l_val = c_l.checkbox("L", value=True)
+                m_val = c_m.checkbox("M", value=False)
+                x_val = c_x.checkbox("X", value=False)
+                j_val = c_j.checkbox("J", value=False)
+                v_val = c_v.checkbox("V", value=False)
+                s_val = c_s.checkbox("S", value=False)
 
-        btn_guardar = st.form_submit_button("💾 Guardar")
+                btn_guardar = st.form_submit_button("💾 Guardar")
 
-        if btn_guardar and nombre_nuevo.strip():
-          agregar_maquina(
-              nombre_nuevo,
-              moto_nuevo,
-              llave_nueva,
-              l_val,
-              m_val,
-              x_val,
-              j_val,
-              v_val,
-              s_val,
-          )
-          st.success("Ubicación agregada en Supabase.")
-          st.rerun()
+                if btn_guardar and nombre_nuevo.strip():
+                    agregar_maquina(
+                        nombre_nuevo,
+                        moto_nuevo,
+                        llave_nueva,
+                        l_val,
+                        m_val,
+                        x_val,
+                        j_val,
+                        v_val,
+                        s_val,
+                    )
+                    st.success("Ubicación agregada en Supabase.")
+                    st.rerun()
 
-    with col_tabla:
-      st.subheader("📋 Modificar / Eliminar Ubicaciones")
+        with col_tabla:
+            st.subheader("📋 Modificar / Eliminar Ubicaciones")
 
-      busqueda_sup = st.text_input(
-          "🔍 Buscador Rápido de Máquinas:",
-          placeholder="Escriba el nombre, motorizado o llave...",
-      )
-
-      df = cargar_maquinas()
-
-      if busqueda_sup and not df.empty:
-        df = df[
-            df["nombre"].str.contains(busqueda_sup, case=False, na=False)
-            | df["motorizado"].str.contains(busqueda_sup, case=False, na=False)
-            | df["llave"].str.contains(busqueda_sup, case=False, na=False)
-        ]
-
-      st.caption(f"Mostrando {len(df)} máquina(s)")
-
-      for index, row in df.iterrows():
-        cfg = MOTORIZADOS_CONFIG.get(
-            row["motorizado"], MOTORIZADOS_CONFIG["Sin Asignar"]
-        )
-        llave_tag = f" | 🔑 {row['llave']}" if row["llave"] != "N/A" else ""
-
-        with st.expander(
-            f"📌 {row['nombre']}{llave_tag} | [{cfg['code']}] {row['motorizado']}"
-        ):
-          with st.form(f"form_edit_{row['id']}"):
-            e_nombre = st.text_input("Ubicación:", value=row["nombre"])
-            e_llave = st.text_input(
-                "Tipo / N° de Llave:",
-                value=row["llave"],
-                key=f"llave_{row['id']}",
+            busqueda_sup = st.text_input(
+                "🔍 Buscador Rápido de Máquinas:",
+                placeholder="Escriba el nombre, motorizado o llave...",
             )
 
-            idx_moto = (
-                MOTORIZADOS_DISPONIBLES.index(row["motorizado"])
-                if row["motorizado"] in MOTORIZADOS_DISPONIBLES
-                else 4
-            )
-            e_moto = st.selectbox(
-                "Motorizado:",
-                MOTORIZADOS_DISPONIBLES,
-                index=idx_moto,
-                key=f"moto_{row['id']}",
-            )
+            df = cargar_maquinas()
 
-            st.write("**Días Activos:**")
-            d1, d2, d3, d4, d5, d6 = st.columns(6)
-            e_l = d1.checkbox(
-                "L", value=bool(row["lunes"]), key=f"l_{row['id']}"
-            )
-            e_m = d2.checkbox(
-                "M", value=bool(row["martes"]), key=f"m_{row['id']}"
-            )
-            e_x = d3.checkbox(
-                "X", value=bool(row["miercoles"]), key=f"x_{row['id']}"
-            )
-            e_j = d4.checkbox(
-                "J", value=bool(row["jueves"]), key=f"j_{row['id']}"
-            )
-            e_v = d5.checkbox(
-                "V", value=bool(row["viernes"]), key=f"v_{row['id']}"
-            )
-            e_s = d6.checkbox(
-                "S", value=bool(row["sabado"]), key=f"s_{row['id']}"
-            )
+            if busqueda_sup and not df.empty:
+                df = df[
+                    df["nombre"].str.contains(busqueda_sup, case=False, na=False)
+                    | df["motorizado"].str.contains(busqueda_sup, case=False, na=False)
+                    | df["llave"].str.contains(busqueda_sup, case=False, na=False)
+                ]
 
-            b1, b2 = st.columns(2)
-            if b1.form_submit_button("💾 Actualizar"):
-              actualizar_maquina(
-                  row["id"],
-                  e_nombre,
-                  e_moto,
-                  e_llave,
-                  e_l,
-                  e_m,
-                  e_x,
-                  e_j,
-                  e_v,
-                  e_s,
-              )
-              st.success("¡Máquina actualizada!")
-              st.rerun()
+            st.caption(f"Mostrando {len(df)} máquina(s)")
 
-            if b2.form_submit_button("🗑️ Eliminar"):
-              eliminar_maquina(row["id"])
-              st.rerun()
+            for index, row in df.iterrows():
+                cfg = MOTORIZADOS_CONFIG.get(
+                    row["motorizado"], MOTORIZADOS_CONFIG["Sin Asignar"]
+                )
+                llave_tag = f" | 🔑 {row['llave']}" if row["llave"] != "N/A" else ""
+
+                with st.expander(
+                    f"📌 {row['nombre']}{llave_tag} | [{cfg['code']}] {row['motorizado']}"
+                ):
+                    with st.form(f"form_edit_{row['id']}"):
+                        e_nombre = st.text_input("Ubicación:", value=row["nombre"])
+                        e_llave = st.text_input(
+                            "Tipo / N° de Llave:",
+                            value=row["llave"],
+                            key=f"llave_{row['id']}",
+                        )
+
+                        idx_moto = (
+                            MOTORIZADOS_DISPONIBLES.index(row["motorizado"])
+                            if row["motorizado"] in MOTORIZADOS_DISPONIBLES
+                            else 4
+                        )
+                        e_moto = st.selectbox(
+                            "Motorizado:",
+                            MOTORIZADOS_DISPONIBLES,
+                            index=idx_moto,
+                            key=f"moto_{row['id']}",
+                        )
+
+                        st.write("**Días Activos:**")
+                        d1, d2, d3, d4, d5, d6 = st.columns(6)
+                        e_l = d1.checkbox(
+                            "L", value=bool(row["lunes"]), key=f"l_{row['id']}"
+                        )
+                        e_m = d2.checkbox(
+                            "M", value=bool(row["martes"]), key=f"m_{row['id']}"
+                        )
+                        e_x = d3.checkbox(
+                            "X", value=bool(row["miercoles"]), key=f"x_{row['id']}"
+                        )
+                        e_j = d4.checkbox(
+                            "J", value=bool(row["jueves"]), key=f"j_{row['id']}"
+                        )
+                        e_v = d5.checkbox(
+                            "V", value=bool(row["viernes"]), key=f"v_{row['id']}"
+                        )
+                        e_s = d6.checkbox(
+                            "S", value=bool(row["sabado"]), key=f"s_{row['id']}"
+                        )
+
+                        b1, b2 = st.columns(2)
+                        if b1.form_submit_button("💾 Actualizar"):
+                            actualizar_maquina(
+                                row["id"],
+                                e_nombre,
+                                e_moto,
+                                e_llave,
+                                e_l,
+                                e_m,
+                                e_x,
+                                e_j,
+                                e_v,
+                                e_s,
+                            )
+                            st.success("¡Máquina actualizada!")
+                            st.rerun()
+
+                        if b2.form_submit_button("🗑️ Eliminar"):
+                            eliminar_maquina(row["id"])
+                            st.rerun()
