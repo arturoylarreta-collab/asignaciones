@@ -281,20 +281,18 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (POSICIONAMIENTO GARANTIZADO DE FLECHA + TAMAÑO OPTIMIZADO)
+# ESTILOS CSS (BOTÓN FLOTANTE VISIBLE Y TAMAÑO AMPLIADO)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Transparencia del contenedor superior para dar paso al botón flotante */
+    /* 1. Header transparente (sin colapsar la altura para permitir renderizado de botones) */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        height: 0px !important;
-        overflow: visible !important;
         z-index: 99999 !important;
     }
 
-    /* Ocultar únicamente el menú de opciones desplegable y decoraciones */
+    /* Ocultar elementos secundarios del header */
     [data-testid="stToolbar"], 
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
@@ -302,22 +300,27 @@ st.markdown(
         display: none !important; 
     }
 
-    /* 2. Forzar posición fija y alta visibilidad del botón desplegable del Menú Lateral */
-    [data-testid="stSidebarCollapsedControl"] {
+    /* 2. Forzar visibilidad y resaltado del botón del sidebar en la esquina superior izquierda */
+    [data-testid="stSidebarCollapsedControl"],
+    button[aria-label="Open sidebar"],
+    button[aria-label="Expand sidebar"],
+    section[data-testid="stSidebar"] + div button {
         display: flex !important;
         visibility: visible !important;
+        opacity: 1 !important;
         position: fixed !important;
-        top: 8px !important;
-        left: 8px !important;
-        z-index: 100000 !important;
+        top: 10px !important;
+        left: 10px !important;
+        z-index: 1000000 !important;
         background-color: #1e293b !important;
         border: 2px solid #38bdf8 !important;
         border-radius: 8px !important;
-        padding: 2px !important;
-        box-shadow: 0px 0px 8px rgba(56, 189, 248, 0.4) !important;
+        box-shadow: 0px 0px 10px rgba(56, 189, 248, 0.6) !important;
     }
 
-    [data-testid="stSidebarCollapsedControl"] button {
+    [data-testid="stSidebarCollapsedControl"] svg,
+    button[aria-label="Open sidebar"] svg {
+        fill: #38bdf8 !important;
         color: #38bdf8 !important;
     }
 
@@ -333,39 +336,38 @@ st.markdown(
         padding: 0 !important; 
     }
     
-    /* Espaciado para evitar que el botón del sidebar solape el texto */
     .block-container { 
-        padding-top: 2.4rem !important; 
+        padding-top: 2.8rem !important; 
         padding-bottom: 0.2rem !important;
-        padding-left: 0.4rem !important;
-        padding-right: 0.4rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         max-width: 100% !important; 
     }
 
-    /* Badges con tipografía aumentada */
+    /* Badges */
     .moto-badge { 
         display: inline-block; 
-        padding: 2px 7px; 
-        border-radius: 4px; 
+        padding: 3px 8px; 
+        border-radius: 5px; 
         font-weight: 900; 
-        font-size: clamp(0.75rem, 0.82vw, 0.92rem); 
+        font-size: clamp(0.8rem, 0.88vw, 0.98rem); 
         text-align: center; 
     }
 
     .key-badge {
-        display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 800; 
-        font-size: clamp(0.68rem, 0.75vw, 0.82rem);
+        display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; 
+        font-size: clamp(0.72rem, 0.8vw, 0.88rem);
         background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
     }
     .key-badge-na {
-        display: inline-block; padding: 2px 4px; border-radius: 4px; font-weight: 700; 
-        font-size: clamp(0.65rem, 0.7vw, 0.78rem);
+        display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 700; 
+        font-size: clamp(0.68rem, 0.75vw, 0.82rem);
         background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 4px; vertical-align: middle;
     }
 
     .status-badge { 
-        display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 800; 
-        font-size: clamp(0.68rem, 0.75vw, 0.82rem); text-align: center; margin-left: 4px; 
+        display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; 
+        font-size: clamp(0.72rem, 0.8vw, 0.88rem); text-align: center; margin-left: 4px; 
     }
     .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
     .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
@@ -374,34 +376,35 @@ st.markdown(
     /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    /* Rejilla y Tablas Optimizadas (Mayor aprovechamiento vertical) */
-    .tv-grid { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+    /* Rejilla y Tablas con Altura Completa */
+    .tv-grid { display: flex; flex-direction: row; gap: 10px; width: 100%; }
     .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
     
     .tv-table th { 
         background-color: #0b1329; color: #94a3b8; 
-        font-size: clamp(0.8rem, 0.88vw, 0.98rem); 
-        font-weight: 800; padding: clamp(4px, 0.5vh, 8px) 0.4rem; 
+        font-size: clamp(0.85rem, 0.92vw, 1.05rem); 
+        font-weight: 800; padding: clamp(6px, 0.7vh, 10px) 0.5rem; 
         border-bottom: 2px solid #1e293b; text-align: left; 
     }
     .tv-table th.center-header { text-align: center; }
     
+    /* Incremento del padding vertical para abarcar la pantalla completa */
     .tv-table td { 
-        padding: clamp(3px, 0.42vh, 6px) 0.4rem !important; 
+        padding: clamp(4px, 0.55vh, 8px) 0.5rem !important; 
         border-bottom: 1px solid #172338; 
-        vertical-align: middle; white-space: nowrap; line-height: 1.2; 
+        vertical-align: middle; white-space: nowrap; line-height: 1.25; 
     }
     
     .location-name { 
-        font-size: clamp(0.85rem, 0.92vw, 1.05rem); 
+        font-size: clamp(0.9rem, 0.98vw, 1.12rem); 
         font-weight: 800; color: #ffffff !important; 
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: clamp(0.88rem, 0.98vw, 1.1rem); }
-    .day-check-sat { color: #c084fc; font-weight: 900; font-size: clamp(0.88rem, 0.98vw, 1.1rem); }
-    .day-off { color: #1e293b; font-size: 0.8rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: clamp(0.95rem, 1.05vw, 1.2rem); }
+    .day-check-sat { color: #c084fc; font-weight: 900; font-size: clamp(0.95rem, 1.05vw, 1.2rem); }
+    .day-off { color: #1e293b; font-size: 0.85rem; }
 
     .row-COMPLETADO { opacity: 0.5; }
 </style>
