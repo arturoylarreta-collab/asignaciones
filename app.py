@@ -281,20 +281,20 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (GARANTIZA BOTÓN SIDEBAR + ESCALADO PERFECTO)
+# ESTILOS CSS (POSICIONAMIENTO GARANTIZADO DE FLECHA + TAMAÑO OPTIMIZADO)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Header transparente de Streamlit que no oculta el botón del Menú */
+    /* 1. Transparencia del contenedor superior para dar paso al botón flotante */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        height: 2.5rem !important;
+        height: 0px !important;
+        overflow: visible !important;
         z-index: 99999 !important;
-        pointer-events: none !important;
     }
 
-    /* Ocultar elementos innecesarios pero mantener el control del Sidebar */
+    /* Ocultar únicamente el menú de opciones desplegable y decoraciones */
     [data-testid="stToolbar"], 
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
@@ -302,30 +302,30 @@ st.markdown(
         display: none !important; 
     }
 
-    /* 2. Forzar visibilidad y estilo del botón desplegable del Sidebar */
-    [data-testid="stSidebarCollapsedControl"],
-    button[aria-label="Expand sidebar"],
-    button[aria-label="Open sidebar"],
-    button[data-testid="stBaseButton-headerNoPadding"] {
+    /* 2. Forzar posición fija y alta visibilidad del botón desplegable del Menú Lateral */
+    [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         visibility: visible !important;
-        pointer-events: auto !important;
         position: fixed !important;
-        top: 6px !important;
-        left: 6px !important;
+        top: 8px !important;
+        left: 8px !important;
         z-index: 100000 !important;
-        color: #38bdf8 !important; 
         background-color: #1e293b !important;
-        border: 1px solid #38bdf8 !important; 
-        border-radius: 6px !important;
-        padding: 4px 8px !important;
+        border: 2px solid #38bdf8 !important;
+        border-radius: 8px !important;
+        padding: 2px !important;
+        box-shadow: 0px 0px 8px rgba(56, 189, 248, 0.4) !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button {
+        color: #38bdf8 !important;
     }
 
     /* Ocultar scrollbars */
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
-    /* Estilos globales y contenedor */
+    /* Estilos globales */
     html, body, .stApp { 
         background-color: #0b1329 !important; 
         color: #f8fafc !important; 
@@ -333,35 +333,39 @@ st.markdown(
         padding: 0 !important; 
     }
     
+    /* Espaciado para evitar que el botón del sidebar solape el texto */
     .block-container { 
-        padding: 0.1rem 0.3rem !important; 
+        padding-top: 2.4rem !important; 
+        padding-bottom: 0.2rem !important;
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
         max-width: 100% !important; 
     }
 
-    /* Badges Adaptativos */
+    /* Badges con tipografía aumentada */
     .moto-badge { 
         display: inline-block; 
-        padding: 1px 5px; 
+        padding: 2px 7px; 
         border-radius: 4px; 
         font-weight: 900; 
-        font-size: clamp(0.68rem, 0.72vw, 0.78rem); 
+        font-size: clamp(0.75rem, 0.82vw, 0.92rem); 
         text-align: center; 
     }
 
     .key-badge {
-        display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; 
-        font-size: clamp(0.62rem, 0.68vw, 0.72rem);
-        background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 3px; vertical-align: middle;
+        display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 800; 
+        font-size: clamp(0.68rem, 0.75vw, 0.82rem);
+        background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
     }
     .key-badge-na {
-        display: inline-block; padding: 1px 3px; border-radius: 3px; font-weight: 700; 
-        font-size: clamp(0.6rem, 0.65vw, 0.7rem);
-        background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 3px; vertical-align: middle;
+        display: inline-block; padding: 2px 4px; border-radius: 4px; font-weight: 700; 
+        font-size: clamp(0.65rem, 0.7vw, 0.78rem);
+        background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 4px; vertical-align: middle;
     }
 
     .status-badge { 
-        display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; 
-        font-size: clamp(0.62rem, 0.68vw, 0.72rem); text-align: center; margin-left: 3px; 
+        display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 800; 
+        font-size: clamp(0.68rem, 0.75vw, 0.82rem); text-align: center; margin-left: 4px; 
     }
     .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
     .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
@@ -370,34 +374,34 @@ st.markdown(
     /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    /* Rejilla y Tablas Optimizadas para Zoom 100% */
-    .tv-grid { display: flex; flex-direction: row; gap: 6px; width: 100%; margin-top: 1px; }
-    .tv-column { flex: 1; background-color: #111c30; border-radius: 6px; border: 1px solid #1e293b; overflow: hidden; }
+    /* Rejilla y Tablas Optimizadas (Mayor aprovechamiento vertical) */
+    .tv-grid { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+    .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
     
     .tv-table th { 
         background-color: #0b1329; color: #94a3b8; 
-        font-size: clamp(0.72rem, 0.78vw, 0.85rem); 
-        font-weight: 800; padding: clamp(2px, 0.3vh, 4px) 0.3rem; 
+        font-size: clamp(0.8rem, 0.88vw, 0.98rem); 
+        font-weight: 800; padding: clamp(4px, 0.5vh, 8px) 0.4rem; 
         border-bottom: 2px solid #1e293b; text-align: left; 
     }
     .tv-table th.center-header { text-align: center; }
     
     .tv-table td { 
-        padding: clamp(1px, 0.22vh, 3px) 0.3rem !important; 
+        padding: clamp(3px, 0.42vh, 6px) 0.4rem !important; 
         border-bottom: 1px solid #172338; 
-        vertical-align: middle; white-space: nowrap; line-height: 1.15; 
+        vertical-align: middle; white-space: nowrap; line-height: 1.2; 
     }
     
     .location-name { 
-        font-size: clamp(0.76rem, 0.82vw, 0.9rem); 
+        font-size: clamp(0.85rem, 0.92vw, 1.05rem); 
         font-weight: 800; color: #ffffff !important; 
     }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: clamp(0.8rem, 0.88vw, 0.95rem); }
-    .day-check-sat { color: #c084fc; font-weight: 900; font-size: clamp(0.8rem, 0.88vw, 0.95rem); }
-    .day-off { color: #1e293b; font-size: 0.75rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: clamp(0.88rem, 0.98vw, 1.1rem); }
+    .day-check-sat { color: #c084fc; font-weight: 900; font-size: clamp(0.88rem, 0.98vw, 1.1rem); }
+    .day-off { color: #1e293b; font-size: 0.8rem; }
 
     .row-COMPLETADO { opacity: 0.5; }
 </style>
