@@ -1,8 +1,3 @@
-"""
-Sistema de Control Logístico y Distribución en Streamlit + Supabase
-Tablero TV 43" - Control de Estado en Tiempo Real (Pendiente / En Ruta / Completado)
-"""
-
 import os
 from datetime import datetime
 import pandas as pd
@@ -13,7 +8,7 @@ from supabase import create_client, Client
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Tablero Logístico Vertical",
+    page_title="Tablero Logístico TV 43\" - Control en Tiempo Real",
     page_icon="🚚",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -39,6 +34,9 @@ try:
 except Exception:
     SUPERVISOR_PIN = "1234"
 
+# ---------------------------------------------------------
+# CONFIGURACIÓN DE ENTIDADES Y ESTADOS
+# ---------------------------------------------------------
 MOTORIZADOS_CONFIG = {
     "Eduard": {"code": "ED", "bg": "#2563eb", "color": "#ffffff"},
     "Freduard": {"code": "FR", "bg": "#7c3aed", "color": "#ffffff"},
@@ -57,7 +55,6 @@ ESTADOS_CONFIG = {
 
 DIAS_MAP = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado"}
 
-# Mapa de llaves conocidas iniciales
 LLAVES_MUESTRA = {
     "KURIOS": "02",
     "CASHEA P9": "01",
@@ -108,7 +105,7 @@ LISTA_REAL_MAQUINAS = [
     ("ROBIN", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
     ("CALLCENTER DRCC", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
     ("DUNCAN", "Eduard", 0, 0, 0, 1, 0, 0, ""),
-    ("ADROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, ""),
+    ("ANDROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, ""),
     ("PEGASO", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
     ("TIO AMMI 1", "Freduard", 1, 0, 1, 0, 0, 0, ""),
     ("TIO AMMI 2", "Freduard", 0, 1, 0, 1, 0, 0, ""),
@@ -135,23 +132,19 @@ LISTA_REAL_MAQUINAS = [
     ("OFICENTRO 2", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
 ]
 
-
 # ---------------------------------------------------------
 # FUNCIONES DE BASE DE DATOS (SUPABASE)
 # ---------------------------------------------------------
 def init_db(force_reset=False):
-    """Inicializa o reinicia la base de datos en Supabase con los 61 registros."""
+    """Inicializa o reinicia la base de datos en Supabase."""
     hoy_str = datetime.now().strftime("%Y-%m-%d")
     
-    # Comprobar registros existentes
     res = supabase.table("maquinas").select("id", count="exact").execute()
     total = res.count if res.count is not None else len(res.data)
 
     if total == 0 or force_reset:
-        # Limpiar tabla
         supabase.table("maquinas").delete().neq("id", 0).execute()
         
-        # Mapear e insertar datos iniciales
         payload = [
             {
                 "nombre": m[0],
@@ -170,17 +163,15 @@ def init_db(force_reset=False):
             for m in LISTA_REAL_MAQUINAS
         ]
         
-        # Inserción por lotes
         supabase.table("maquinas").insert(payload).execute()
 
 init_db()
 
 
 def cargar_maquinas():
-    """Carga los registros de Supabase y resetea estados si cambió el día."""
+    """Carga los registros de Supabase y resetea estados al cambiar el día."""
     hoy_str = datetime.now().strftime("%Y-%m-%d")
     
-    # Resetear estado a PENDIENTE si la fecha del estado no coincide con hoy
     supabase.table("maquinas").update(
         {"estado": "PENDIENTE", "fecha_estado": hoy_str}
     ).neq("fecha_estado", hoy_str).execute()
@@ -190,13 +181,11 @@ def cargar_maquinas():
     if res.data:
         df = pd.DataFrame(res.data)
         
-        # Garantizar que la columna 'llave' exista y no tenga valores nulos
         if "llave" not in df.columns:
             df["llave"] = "N/A"
         else:
             df["llave"] = df["llave"].fillna("N/A").replace("", "N/A")
 
-        # Asegurar tipo entero en las columnas de días para compatibilidad
         dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
         for c in dias_cols:
             if c in df.columns:
@@ -252,7 +241,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CON INDICADORES Y RESALTADO DE DÍA ACTUAL
+# ESTILOS CSS ADAPTADOS A PANTALLA TV DE 43"
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -269,23 +258,26 @@ st.markdown(
     html, body, .stApp { background-color: #0b1329 !important; color: #f8fafc !important; margin: 0 !important; padding: 0 !important; }
     .block-container { padding: 0.4rem 0.6rem !important; max-width: 100% !important; }
 
+    /* Cabecera TV */
     .live-header {
         background-color: #152238; padding: 0.5rem 0.9rem; border-radius: 8px; margin-bottom: 0.5rem;
         border: 1px solid #1e293b; display: flex; flex-direction: row; justify-content: space-between; align-items: center;
     }
-    .live-badge { background-color: #ef4444; color: white; padding: 0.2rem 0.7rem; border-radius: 4px; font-weight: 800; font-size: 0.9rem; }
-    .live-title { font-size: 1.35rem; font-weight: 800; color: #f8fafc; text-align: center; }
-    .live-time { font-size: 1.05rem; font-weight: 700; color: #38bdf8; }
+    .live-badge { background-color: #ef4444; color: white; padding: 0.2rem 0.7rem; border-radius: 4px; font-weight: 800; font-size: 0.9rem; animation: pulse 2s infinite; }
+    .live-title { font-size: 1.45rem; font-weight: 900; color: #f8fafc; text-align: center; letter-spacing: 0.5px; }
+    .live-time { font-size: 1.1rem; font-weight: 700; color: #38bdf8; }
 
+    /* Leyenda de Estado e Indicadores */
     .legend-box {
         background-color: #152238; border: 1px solid #1e293b; border-radius: 8px; padding: 8px; margin-bottom: 0.6rem;
         display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 10px;
     }
-    .legend-item { display: inline-flex; align-items: center; font-size: 0.9rem; font-weight: 700; color: #cbd5e1; }
-    .moto-badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-weight: 900; font-size: 0.88rem; text-align: center; margin-right: 6px; }
+    .legend-item { display: inline-flex; align-items: center; font-size: 0.95rem; font-weight: 700; color: #cbd5e1; }
+    .moto-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 900; font-size: 0.88rem; text-align: center; margin-right: 6px; }
 
+    /* Badges para Llaves y Estados */
     .key-badge {
-        display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: 800; font-size: 0.72rem;
+        display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem;
         background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
     }
     .key-badge-na {
@@ -293,27 +285,29 @@ st.markdown(
         background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 4px; vertical-align: middle;
     }
 
-    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-align: center; margin-left: 4px; }
+    .status-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 800; font-size: 0.78rem; text-align: center; margin-left: 4px; }
     .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
     .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
     .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
 
+    /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    .tv-grid { display: flex; flex-direction: row; gap: 14px; width: 100%; }
-    .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; }
-    .tv-table { width: 100%; border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .tv-table th { background-color: #0b1329; color: #64748b; font-size: 0.9rem; font-weight: 800; padding: 0.35rem 0.35rem; border-bottom: 2px solid #1e293b; text-align: left; }
+    /* Rejilla de Contenedores TV 43" */
+    .tv-grid { display: flex; flex-direction: row; gap: 12px; width: 100%; }
+    .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
+    .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
+    .tv-table th { background-color: #0b1329; color: #94a3b8; font-size: 0.88rem; font-weight: 800; padding: 0.35rem 0.4rem; border-bottom: 2px solid #1e293b; text-align: left; }
     .tv-table th.center-header { text-align: center; }
-    .tv-table td { padding: 0.25rem 0.35rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.25; }
+    .tv-table td { padding: 0.28rem 0.4rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.25; }
     .location-name { font-size: 0.95rem; font-weight: 800; color: #ffffff !important; }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: 1.0rem; }
-    .day-check-sat { color: #a855f7; font-weight: 900; font-size: 1.0rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: 1.05rem; }
+    .day-check-sat { color: #c084fc; font-weight: 900; font-size: 1.05rem; }
     .day-off { color: #1e293b; font-size: 0.82rem; }
 
-    .row-COMPLETADO { opacity: 0.65; }
+    .row-COMPLETADO { opacity: 0.55; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -321,7 +315,7 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# FUNCIONES DE RENDERING DE VISTAS
+# FUNCIONES DE RENDERING DE VISTAS (TABLERO)
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical():
@@ -362,7 +356,7 @@ def renderizar_tablero_vertical():
     progreso_html = f"""
     <div class="legend-box">
         {legend_items}
-        <div style="border-left: 1px solid #334155; padding-left: 10px; display: flex; gap: 12px; font-weight: 800; font-size: 0.9rem;">
+        <div style="border-left: 1px solid #334155; padding-left: 12px; display: flex; gap: 14px; font-weight: 800; font-size: 0.95rem;">
             <span>HOY: <strong style="color: #38bdf8;">{total_hoy}</strong></span>
             <span>🟢 <strong style="color: #10b981;">{completadas_hoy}</strong></span>
             <span>🟡 <strong style="color: #f59e0b;">{en_ruta_hoy}</strong></span>
@@ -451,32 +445,32 @@ def renderizar_tablero_vertical():
 
 
 # ---------------------------------------------------------
-# CONTROL DE NAVEGACIÓN Y VISTAS
+# NAVEGACIÓN Y PANELES
 # ---------------------------------------------------------
 st.sidebar.title("🎛️ NAVEGACIÓN")
 modo = st.sidebar.radio(
     "Seleccionar Vista:",
-    ["📱 Tablero Vertical", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión"],
+    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión"],
 )
 
-if modo == "📱 Tablero Vertical":
+if modo == "📱 Tablero TV (En Vivo)":
     renderizar_tablero_vertical()
 
 elif modo == "⚡ Control de Ruta Hoy":
     st.title("⚡ Control de Avance de Ruta (Hoy)")
-    st.markdown("Marque el estado de cada ubicación a medida que se realiza la ruta:")
+    st.markdown("Actualice el estado operacional de cada punto según la ruta del día:")
 
     df_maquinas = cargar_maquinas()
     
     if df_maquinas.empty:
-        st.info("No existen máquinas guardadas.")
+        st.info("No existen máquinas registradas.")
     else:
         dia_num = datetime.now().weekday()
         nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
 
         col_f1, col_f2 = st.columns([1, 2])
         filt_moto = col_f1.selectbox("Filtrar por Motorizado:", ["Todos"] + MOTORIZADOS_DISPONIBLES)
-        busqueda_ruta = col_f2.text_input("🔍 Buscar máquina por nombre o llave:", placeholder="Ej: Unimet, 01/02, Cashea...")
+        busqueda_ruta = col_f2.text_input("🔍 Buscar ubicación o llave:", placeholder="Ej: Unimet, 01/02, Cashea...")
 
         df_filtrado = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
         
@@ -490,7 +484,7 @@ elif modo == "⚡ Control de Ruta Hoy":
             ]
 
         st.subheader(
-            f"Máquinas programadas para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
+            f"Puntos asignados para hoy ({nombre_dia_hoy.upper()}): {len(df_filtrado)}"
         )
 
         for index, m in df_filtrado.iterrows():
@@ -529,7 +523,7 @@ elif modo == "⚙️ Panel de Gestión":
     else:
         st.success("🔓 Acceso concedido.")
 
-        if st.sidebar.button("🔄 Recargar las 61 Ubicaciones Iniciales"):
+        if st.sidebar.button("🔄 Recargar Ubicaciones Iniciales"):
             init_db(force_reset=True)
             st.sidebar.success("¡Base de datos restablecida en Supabase con éxito!")
             st.rerun()
@@ -572,10 +566,9 @@ elif modo == "⚙️ Panel de Gestión":
         with col_tabla:
             st.subheader("📋 Modificar / Eliminar Ubicaciones")
             
-            # Buscador en zona de supervisión
             busqueda_sup = st.text_input(
                 "🔍 Buscador Rápido de Máquinas:", 
-                placeholder="Escriba el nombre de la máquina, motorizado o llave (ej. Cashea, Eduard, 01/02)..."
+                placeholder="Escriba el nombre, motorizado o llave..."
             )
             
             df = cargar_maquinas()
