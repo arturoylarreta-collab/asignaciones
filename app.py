@@ -281,54 +281,51 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS (HEADER TRANSPARENTE + BOTÓN SIDEBAR ACTIVO)
+# ESTILOS CSS (GARANTIZA BOTÓN SIDEBAR + ESCALADO PERFECTO)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Header transparente de Streamlit (no bloquea espacio pero conserva interacción) */
+    /* 1. Header transparente de Streamlit que no oculta el botón del Menú */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        height: 40px !important;
+        height: 2.5rem !important;
         z-index: 99999 !important;
+        pointer-events: none !important;
     }
 
-    /* 2. Ocultar únicamente el menú de opciones desplegable, la barra decorativa y footer */
+    /* Ocultar elementos innecesarios pero mantener el control del Sidebar */
     [data-testid="stToolbar"], 
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
     #MainMenu, footer { 
         display: none !important; 
-        visibility: hidden !important; 
     }
 
-    /* 3. Forzar visibilidad y clickeabilidad del botón del Menú Lateral */
+    /* 2. Forzar visibilidad y estilo del botón desplegable del Sidebar */
     [data-testid="stSidebarCollapsedControl"],
-    button[aria-label="Toggle sidebar"],
-    button[aria-label="Open sidebar"] {
+    button[aria-label="Expand sidebar"],
+    button[aria-label="Open sidebar"],
+    button[data-testid="stBaseButton-headerNoPadding"] {
         display: flex !important;
         visibility: visible !important;
+        pointer-events: auto !important;
         position: fixed !important;
         top: 6px !important;
         left: 6px !important;
         z-index: 100000 !important;
         color: #38bdf8 !important; 
-        background-color: #152238 !important;
-        border: 1px solid #1e293b !important; 
-        border-radius: 6px !important;
-        opacity: 0.85;
-    }
-    
-    [data-testid="stSidebarCollapsedControl"]:hover {
-        opacity: 1;
         background-color: #1e293b !important;
+        border: 1px solid #38bdf8 !important; 
+        border-radius: 6px !important;
+        padding: 4px 8px !important;
     }
 
     /* Ocultar scrollbars */
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
-    /* Estilos base de la aplicación */
+    /* Estilos globales y contenedor */
     html, body, .stApp { 
         background-color: #0b1329 !important; 
         color: #f8fafc !important; 
@@ -337,30 +334,35 @@ st.markdown(
     }
     
     .block-container { 
-        padding: 0.1rem 0.4rem !important; 
+        padding: 0.1rem 0.3rem !important; 
         max-width: 100% !important; 
     }
 
-    /* Badges para Tabla */
+    /* Badges Adaptativos */
     .moto-badge { 
         display: inline-block; 
-        padding: 2px 7px; 
+        padding: 1px 5px; 
         border-radius: 4px; 
         font-weight: 900; 
-        font-size: 0.82rem; 
+        font-size: clamp(0.68rem, 0.72vw, 0.78rem); 
         text-align: center; 
     }
 
     .key-badge {
-        display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: 800; font-size: 0.72rem;
-        background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
+        display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; 
+        font-size: clamp(0.62rem, 0.68vw, 0.72rem);
+        background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 3px; vertical-align: middle;
     }
     .key-badge-na {
-        display: inline-block; padding: 1px 4px; border-radius: 4px; font-weight: 700; font-size: 0.7rem;
-        background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 4px; vertical-align: middle;
+        display: inline-block; padding: 1px 3px; border-radius: 3px; font-weight: 700; 
+        font-size: clamp(0.6rem, 0.65vw, 0.7rem);
+        background-color: #111c30; color: #64748b; border: 1px solid #1e293b; margin-left: 3px; vertical-align: middle;
     }
 
-    .status-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-align: center; margin-left: 4px; }
+    .status-badge { 
+        display: inline-block; padding: 1px 4px; border-radius: 3px; font-weight: 800; 
+        font-size: clamp(0.62rem, 0.68vw, 0.72rem); text-align: center; margin-left: 3px; 
+    }
     .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
     .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
     .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
@@ -368,19 +370,34 @@ st.markdown(
     /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    /* Rejilla de Contenedores TV 43" */
-    .tv-grid { display: flex; flex-direction: row; gap: 8px; width: 100%; margin-top: 2px; }
-    .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
+    /* Rejilla y Tablas Optimizadas para Zoom 100% */
+    .tv-grid { display: flex; flex-direction: row; gap: 6px; width: 100%; margin-top: 1px; }
+    .tv-column { flex: 1; background-color: #111c30; border-radius: 6px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
-    .tv-table th { background-color: #0b1329; color: #94a3b8; font-size: 0.85rem; font-weight: 800; padding: 0.35rem 0.35rem; border-bottom: 2px solid #1e293b; text-align: left; }
+    
+    .tv-table th { 
+        background-color: #0b1329; color: #94a3b8; 
+        font-size: clamp(0.72rem, 0.78vw, 0.85rem); 
+        font-weight: 800; padding: clamp(2px, 0.3vh, 4px) 0.3rem; 
+        border-bottom: 2px solid #1e293b; text-align: left; 
+    }
     .tv-table th.center-header { text-align: center; }
-    .tv-table td { padding: 0.25rem 0.35rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.2; }
-    .location-name { font-size: 0.95rem; font-weight: 800; color: #ffffff !important; }
+    
+    .tv-table td { 
+        padding: clamp(1px, 0.22vh, 3px) 0.3rem !important; 
+        border-bottom: 1px solid #172338; 
+        vertical-align: middle; white-space: nowrap; line-height: 1.15; 
+    }
+    
+    .location-name { 
+        font-size: clamp(0.76rem, 0.82vw, 0.9rem); 
+        font-weight: 800; color: #ffffff !important; 
+    }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
-    .day-check { color: #38bdf8; font-weight: 900; font-size: 1rem; }
-    .day-check-sat { color: #c084fc; font-weight: 900; font-size: 1rem; }
-    .day-off { color: #1e293b; font-size: 0.8rem; }
+    .day-check { color: #38bdf8; font-weight: 900; font-size: clamp(0.8rem, 0.88vw, 0.95rem); }
+    .day-check-sat { color: #c084fc; font-weight: 900; font-size: clamp(0.8rem, 0.88vw, 0.95rem); }
+    .day-off { color: #1e293b; font-size: 0.75rem; }
 
     .row-COMPLETADO { opacity: 0.5; }
 </style>
