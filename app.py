@@ -281,41 +281,54 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS REOPTIMIZADOS (FULL PANTALLA TV 43")
+# ESTILOS CSS (HEADER TRANSPARENTE + BOTÓN SIDEBAR ACTIVO)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* Ocultar elementos nativos de Streamlit */
-    header[data-testid="stHeader"], 
-    [data-testid="stHeader"], 
+    /* 1. Header transparente de Streamlit (no bloquea espacio pero conserva interacción) */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 40px !important;
+        z-index: 99999 !important;
+    }
+
+    /* 2. Ocultar únicamente el menú de opciones desplegable, la barra decorativa y footer */
     [data-testid="stToolbar"], 
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
     #MainMenu, footer { 
         display: none !important; 
         visibility: hidden !important; 
-        height: 0px !important; 
-        margin: 0px !important; 
-        padding: 0px !important;
     }
 
-    [data-testid="stSidebarCollapsedControl"] {
+    /* 3. Forzar visibilidad y clickeabilidad del botón del Menú Lateral */
+    [data-testid="stSidebarCollapsedControl"],
+    button[aria-label="Toggle sidebar"],
+    button[aria-label="Open sidebar"] {
         display: flex !important;
         visibility: visible !important;
         position: fixed !important;
-        top: 8px !important;
-        left: 8px !important;
-        z-index: 999999 !important;
+        top: 6px !important;
+        left: 6px !important;
+        z-index: 100000 !important;
         color: #38bdf8 !important; 
         background-color: #152238 !important;
         border: 1px solid #1e293b !important; 
         border-radius: 6px !important;
+        opacity: 0.85;
+    }
+    
+    [data-testid="stSidebarCollapsedControl"]:hover {
+        opacity: 1;
+        background-color: #1e293b !important;
     }
 
+    /* Ocultar scrollbars */
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
+    /* Estilos base de la aplicación */
     html, body, .stApp { 
         background-color: #0b1329 !important; 
         color: #f8fafc !important; 
