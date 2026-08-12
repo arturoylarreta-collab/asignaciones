@@ -281,27 +281,26 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CORREGIDOS (BOTÓN DESPLEGABLE VISIBLE Y CLIQUEABLE)
+# ESTILOS CSS CORREGIDOS (COMPATIBLE CON STREAMLIT CLOUD)
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Evitar que la cabecera capture eventos de clic */
+    /* 1. Desactivar captura de eventos en la barra superior pero mantener interactividad en hijos */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        z-index: 99999 !important;
+        z-index: 9999 !important;
         pointer-events: none !important;
     }
 
-    /* Ocultar elementos secundarios de la barra superior */
-    [data-testid="stToolbar"], 
+    /* Ocultar elementos decorativos secundarios */
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
     #MainMenu, footer { 
         display: none !important; 
     }
 
-    /* 2. Forzar visibilidad, interacción y estilo para el botón desplegable del menú */
+    /* 2. Forzar visibilidad y clickeabilidad del botón flotante del Menú Sidebar */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarCollapseButton"],
     button[aria-label="Open sidebar"],
@@ -311,8 +310,8 @@ st.markdown(
         visibility: visible !important;
         opacity: 1 !important;
         position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
+        top: 12px !important;
+        left: 12px !important;
         z-index: 1000000 !important;
         pointer-events: auto !important;
         background-color: #1e293b !important;
@@ -324,7 +323,7 @@ st.markdown(
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* Estilo del ícono SVG dentro del botón */
+    /* Estilo del icono SVG dentro del botón del menú */
     [data-testid="stSidebarCollapsedControl"] svg,
     [data-testid="stSidebarCollapseButton"] svg,
     button[aria-label="Open sidebar"] svg,
@@ -354,7 +353,7 @@ st.markdown(
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
-    /* Estilos globales */
+    /* Estilos globales para pantalla oscura en TV 43" */
     html, body, .stApp { 
         background-color: #0b1329 !important; 
         color: #f8fafc !important; 
