@@ -281,12 +281,12 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS REOPTIMIZADOS Y SIN HEADER (TV 43")
+# ESTILOS CSS REOPTIMIZADOS (FULL PANTALLA TV 43")
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* ELIMINACIÓN TOTAL DEL HEADER Y MÁRGENES DE STREAMLIT */
+    /* Ocultar elementos nativos de Streamlit */
     header[data-testid="stHeader"], 
     [data-testid="stHeader"], 
     [data-testid="stToolbar"], 
@@ -300,7 +300,6 @@ st.markdown(
         padding: 0px !important;
     }
 
-    /* Mantiene accesible el botón flotante del Menú Lateral cuando se contrae */
     [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         visibility: visible !important;
@@ -325,60 +324,20 @@ st.markdown(
     }
     
     .block-container { 
-        padding: 0.2rem 0.5rem !important; 
+        padding: 0.1rem 0.4rem !important; 
         max-width: 100% !important; 
     }
 
-    /* Cabecera del Tablero (TV 43") */
-    .live-header {
-        background-color: #152238; 
-        padding: 0.4rem 0.8rem; 
-        border-radius: 8px; 
-        margin-bottom: 0.4rem;
-        border: 1px solid #1e293b; 
-        display: flex; 
-        flex-direction: row; 
-        justify-content: space-between; 
-        align-items: center;
-    }
-    .live-badge { 
-        background-color: #ef4444; 
-        color: white; 
-        padding: 0.2rem 0.65rem; 
+    /* Badges para Tabla */
+    .moto-badge { 
+        display: inline-block; 
+        padding: 2px 7px; 
         border-radius: 4px; 
-        font-weight: 800; 
-        font-size: 0.88rem; 
-    }
-    .live-title { 
-        font-size: 1.4rem; 
         font-weight: 900; 
-        color: #f8fafc; 
+        font-size: 0.82rem; 
         text-align: center; 
-        letter-spacing: 0.5px; 
-    }
-    .live-time { 
-        font-size: 1.05rem; 
-        font-weight: 700; 
-        color: #38bdf8; 
     }
 
-    /* Leyenda e Indicadores */
-    .legend-box {
-        background-color: #152238; 
-        border: 1px solid #1e293b; 
-        border-radius: 8px; 
-        padding: 6px 10px; 
-        margin-bottom: 0.5rem;
-        display: flex; 
-        justify-content: space-around; 
-        align-items: center; 
-        flex-wrap: wrap; 
-        gap: 8px;
-    }
-    .legend-item { display: inline-flex; align-items: center; font-size: 0.9rem; font-weight: 700; color: #cbd5e1; }
-    .moto-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 900; font-size: 0.82rem; text-align: center; margin-right: 5px; }
-
-    /* Badges para Llaves y Estados */
     .key-badge {
         display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: 800; font-size: 0.72rem;
         background-color: #1e293b; color: #38bdf8; border: 1px solid #334155; margin-left: 4px; vertical-align: middle;
@@ -397,13 +356,13 @@ st.markdown(
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
     /* Rejilla de Contenedores TV 43" */
-    .tv-grid { display: flex; flex-direction: row; gap: 10px; width: 100%; }
+    .tv-grid { display: flex; flex-direction: row; gap: 8px; width: 100%; margin-top: 2px; }
     .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
-    .tv-table th { background-color: #0b1329; color: #94a3b8; font-size: 0.85rem; font-weight: 800; padding: 0.3rem 0.35rem; border-bottom: 2px solid #1e293b; text-align: left; }
+    .tv-table th { background-color: #0b1329; color: #94a3b8; font-size: 0.85rem; font-weight: 800; padding: 0.35rem 0.35rem; border-bottom: 2px solid #1e293b; text-align: left; }
     .tv-table th.center-header { text-align: center; }
-    .tv-table td { padding: 0.22rem 0.35rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.2; }
-    .location-name { font-size: 0.92rem; font-weight: 800; color: #ffffff !important; }
+    .tv-table td { padding: 0.25rem 0.35rem !important; border-bottom: 1px solid #172338; vertical-align: middle; white-space: nowrap; line-height: 1.2; }
+    .location-name { font-size: 0.95rem; font-weight: 800; color: #ffffff !important; }
     .tv-table tr:nth-child(even) { background-color: #0d1627; }
 
     .day-check { color: #38bdf8; font-weight: 900; font-size: 1rem; }
@@ -418,13 +377,11 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# RENDERING DE TABLERO (TV 43")
+# RENDERING DE TABLERO (TV 43" - DIRECTO A TABLA)
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical():
   dt_now = datetime.now()
-  hora_actual = dt_now.strftime("%H:%M:%S")
-  fecha_actual = dt_now.strftime("%d/%m/%Y")
   dia_num = dt_now.weekday()
 
   df_maquinas = cargar_maquinas()
@@ -432,44 +389,6 @@ def renderizar_tablero_vertical():
   if df_maquinas.empty:
     st.warning("No hay máquinas registradas en la base de datos de Supabase.")
     return
-
-  nombre_dia_hoy = DIAS_MAP.get(dia_num, "lunes")
-  df_hoy = df_maquinas[df_maquinas[nombre_dia_hoy] == 1]
-  total_hoy = len(df_hoy)
-  completadas_hoy = len(df_hoy[df_hoy["estado"] == "COMPLETADO"])
-  en_ruta_hoy = len(df_hoy[df_hoy["estado"] == "EN_RUTA"])
-  pendientes_hoy = total_hoy - completadas_hoy - en_ruta_hoy
-
-  st.markdown(
-      f"""
-    <div class="live-header">
-        <div><span class="live-badge">● EN VIVO</span></div>
-        <div class="live-title">CONTROL DE RECARGAS Y LOGÍSTICA</div>
-        <div class="live-time">⏱️ {hora_actual} <span style="font-size: 0.8rem; color: #64748b;">({fecha_actual})</span></div>
-    </div>
-    """,
-      unsafe_allow_html=True,
-  )
-
-  legend_items = "".join(
-      f'<div class="legend-item"><span class="moto-badge"'
-      f' style="background-color: {cfg["bg"]}; color:'
-      f' {cfg["color"]};">{cfg["code"]}</span> {nombre}</div>'
-      for nombre, cfg in MOTORIZADOS_CONFIG.items()
-  )
-
-  progreso_html = f"""
-    <div class="legend-box">
-        {legend_items}
-        <div style="border-left: 1px solid #334155; padding-left: 10px; display: flex; gap: 12px; font-weight: 800; font-size: 0.9rem;">
-            <span>HOY: <strong style="color: #38bdf8;">{total_hoy}</strong></span>
-            <span>🟢 <strong style="color: #10b981;">{completadas_hoy}</strong></span>
-            <span>🟡 <strong style="color: #f59e0b;">{en_ruta_hoy}</strong></span>
-            <span>⚪ <strong style="color: #94a3b8;">{pendientes_hoy}</strong></span>
-        </div>
-    </div>
-    """
-  st.markdown(progreso_html, unsafe_allow_html=True)
 
   def get_cell(active, is_sat=False):
     if active:
