@@ -544,11 +544,392 @@ def renderizar_tablero_vertical():
 st.sidebar.title("🎛️ NAVEGACIÓN")
 modo = st.sidebar.radio(
     "Seleccionar Vista:",
-    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión"],
+    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión", "☕ Máquinas de Café"],
 )
 
 if modo == "📱 Tablero TV (En Vivo)":
     renderizar_tablero_vertical()
+
+elif modo == "☕ Máquinas de Café":
+    st.title("☕ Gestión de Máquinas de Café")
+
+    # ---------------------------------------------------------
+    # 1. CONFIGURACIÓN DEL MOTORIZADO ÚNICO (JUAN)
+    # ---------------------------------------------------------
+    MOTORIZADO_CAFE = {
+        "Juan": {"code": "JU", "bg": "#ec4899", "color": "#ffffff"}
+    }
+
+    # Dict por defecto para fallback de estados si no existe ESTADOS_CONFIG global
+    ESTADOS_DEFAULT = {
+        "PENDIENTE": {"icon": "⏳", "label": "Pendiente"},
+        "EN_RUTA": {"icon": "🛵", "label": "En Ruta"},
+        "COMPLETADO": {"icon": "✅", "label": "Completado"},
+    }
+    config_estados = globals().get("ESTADOS_CONFIG", ESTADOS_DEFAULT)
+
+    # ---------------------------------------------------------
+    # 2. DATOS EXTRAÍDOS DEL CRONOGRAMA MANUSCRITO
+    # ---------------------------------------------------------
+    DATOS_MAQUINAS_CAFE = [
+        {
+            "nombre": "Clínicas Caracas",
+            "direccion": "San Bernardino, Caracas",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "",
+                "martes": "9:30 am",
+                "miercoles": "",
+                "jueves": "9:30 am",
+                "viernes": "",
+                "sabado": "9:30 am",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Cashea P9",
+            "direccion": "Torre HP, Piso 9, Chacao",
+            "llave": "01",
+            "horarios": {
+                "lunes": "",
+                "martes": "9:30 am",
+                "miercoles": "9:30 am",
+                "jueves": "",
+                "viernes": "9:30 am",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Cashea P18",
+            "direccion": "Torre HP, Piso 18, Chacao",
+            "llave": "Maestra (M)",
+            "horarios": {
+                "lunes": "9:30 am",
+                "martes": "",
+                "miercoles": "9:30 am",
+                "jueves": "",
+                "viernes": "9:30 am",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "CMDLT",
+            "direccion": "Centro Médico Docente La Trinidad",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "7:00 am",
+                "martes": "",
+                "miercoles": "7:00 am",
+                "jueves": "",
+                "viernes": "7:00 am",
+                "sabado": "2:00 pm",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "UR (Unión Radio)",
+            "direccion": "Av. La Estancia, La Castellana",
+            "llave": "02",
+            "horarios": {
+                "lunes": "10:30 am",
+                "martes": "",
+                "miercoles": "10:30 am",
+                "jueves": "",
+                "viernes": "10:30 am",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Sanatrix",
+            "direccion": "Clínica Sanatrix, Chacao",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "",
+                "martes": "1:30 pm",
+                "miercoles": "",
+                "jueves": "1:30 pm",
+                "viernes": "",
+                "sabado": "1:30 pm",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Bangente",
+            "direccion": "Av. Francisco de Miranda",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "8:30 am",
+                "martes": "",
+                "miercoles": "",
+                "jueves": "8:30 am",
+                "viernes": "8:30 am",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Ávila Recep / D",
+            "direccion": "Clínica Ávila, Altamira",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "1:30 pm",
+                "martes": "",
+                "miercoles": "",
+                "jueves": "1:30 pm",
+                "viernes": "1:30 pm",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Fenix",
+            "direccion": "Edif. Fenix",
+            "llave": "02",
+            "horarios": {
+                "lunes": "12:30 pm",
+                "martes": "10:30 am",
+                "miercoles": "",
+                "jueves": "10:30 am",
+                "viernes": "12:30 pm",
+                "sabado": "10:30 am",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Florida",
+            "direccion": "Urb. La Florida",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "",
+                "martes": "7:30 am",
+                "miercoles": "7:30 am",
+                "jueves": "7:30 am",
+                "viernes": "",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Woconect",
+            "direccion": "Sede Woconect",
+            "llave": "N/A",
+            "horarios": {
+                "lunes": "",
+                "martes": "8:30 am",
+                "miercoles": "",
+                "jueves": "8:30 am",
+                "viernes": "",
+                "sabado": "",
+            },
+            "estado": "PENDIENTE",
+        },
+        {
+            "nombre": "Kurios",
+            "direccion": "Sede Kurios",
+            "llave": "02",
+            "horarios": {
+                "lunes": "",
+                "martes": "12:30 pm",
+                "miercoles": "",
+                "jueves": "12:30 pm",
+                "viernes": "",
+                "sabado": "12:30 pm",
+            },
+            "estado": "PENDIENTE",
+        },
+    ]
+
+    # Construcción de DataFrame para el dashboard
+    rows_cafe = []
+    for item in DATOS_MAQUINAS_CAFE:
+        h = item["horarios"]
+        rows_cafe.append(
+            {
+                "nombre": item["nombre"],
+                "direccion": item["direccion"],
+                "llave": item["llave"],
+                "lunes": 1 if h["lunes"] else 0,
+                "martes": 1 if h["martes"] else 0,
+                "miercoles": 1 if h["miercoles"] else 0,
+                "jueves": 1 if h["jueves"] else 0,
+                "viernes": 1 if h["viernes"] else 0,
+                "sabado": 1 if h["sabado"] else 0,
+                "h_lunes": h["lunes"],
+                "h_martes": h["martes"],
+                "h_miercoles": h["miercoles"],
+                "h_jueves": h["jueves"],
+                "h_viernes": h["viernes"],
+                "h_sabado": h["sabado"],
+                "estado": item["estado"],
+            }
+        )
+
+    df_cafe = pd.DataFrame(rows_cafe)
+
+    # ---------------------------------------------------------
+    # 3. PESTAÑAS DEL APARTADO
+    # ---------------------------------------------------------
+    tab_tablero, tab_cronograma, tab_direcciones = st.tabs(
+        ["📺 Tablero TV (Juan)", "📅 Cronograma Fijo", "📍 Direcciones y Puntos"]
+    )
+
+    # ---------------------------------------------------------
+    # TAB 1: TABLERO TV (MISMA ESTRUCTURA DE SNACKY)
+    # ---------------------------------------------------------
+    with tab_tablero:
+        dt_now = datetime.now()
+        dia_num = dt_now.weekday()
+
+        def get_cell_cafe(active, is_sat=False):
+            if active:
+                cls = "day-check-sat" if is_sat else "day-check"
+                return f'<span class="{cls}">✓</span>'
+            return '<span class="day-off">-</span>'
+
+        badge_juan = f'<span class="moto-badge" style="background-color: {MOTORIZADO_CAFE["Juan"]["bg"]}; color: {MOTORIZADO_CAFE["Juan"]["color"]};">{MOTORIZADO_CAFE["Juan"]["code"]}</span>'
+
+        mitad = (len(df_cafe) + 1) // 2
+        col1_cafe = df_cafe.iloc[:mitad]
+        col2_cafe = df_cafe.iloc[mitad:]
+
+        h_l = "today-col-header" if dia_num == 0 else ""
+        h_m = "today-col-header" if dia_num == 1 else ""
+        h_x = "today-col-header" if dia_num == 2 else ""
+        h_j = "today-col-header" if dia_num == 3 else ""
+        h_v = "today-col-header" if dia_num == 4 else ""
+        h_s = "today-col-header" if dia_num == 5 else ""
+
+        def render_tabla_cafe(df_sub):
+            rows_list = []
+            for _, m in df_sub.iterrows():
+                est = config_estados.get(
+                    m["estado"], config_estados["PENDIENTE"]
+                )
+                badge_estado = f'<span class="status-badge status-{m["estado"]}">{est["icon"]}</span>'
+                badge_llave = (
+                    f'<span class="key-badge">🔑 {m["llave"]}</span>'
+                    if m["llave"] != "N/A"
+                    else '<span class="key-badge-na">🔑 N/A</span>'
+                )
+
+                c_l = get_cell_cafe(m["lunes"])
+                c_m = get_cell_cafe(m["martes"])
+                c_x = get_cell_cafe(m["miercoles"])
+                c_j = get_cell_cafe(m["jueves"])
+                c_v = get_cell_cafe(m["viernes"])
+                c_s = get_cell_cafe(m["sabado"], is_sat=True)
+
+                row_class = (
+                    f"row-{m['estado']}" if m["estado"] == "COMPLETADO" else ""
+                )
+
+                rows_list.append(
+                    f'<tr class="{row_class}">'
+                    f'<td class="location-name">{m["nombre"]} {badge_llave} {badge_estado}</td>'
+                    f'<td style="text-align: center;">{badge_juan}</td>'
+                    f'<td style="text-align: center;">{c_l}</td>'
+                    f'<td style="text-align: center;">{c_m}</td>'
+                    f'<td style="text-align: center;">{c_x}</td>'
+                    f'<td style="text-align: center;">{c_j}</td>'
+                    f'<td style="text-align: center;">{c_v}</td>'
+                    f'<td style="text-align: center;">{c_s}</td>'
+                    "</tr>"
+                )
+
+            html_rows = "".join(rows_list)
+            return (
+                f'<div class="tv-column"><table class="tv-table"><thead><tr>'
+                f'<th style="width: 44%;">PUNTO DE CAFÉ</th>'
+                f'<th class="center-header" style="width: 14%;">RESP.</th>'
+                f'<th class="center-header {h_l}" style="width: 7%;">L</th>'
+                f'<th class="center-header {h_m}" style="width: 7%;">M</th>'
+                f'<th class="center-header {h_x}" style="width: 7%;">X</th>'
+                f'<th class="center-header {h_j}" style="width: 7%;">J</th>'
+                f'<th class="center-header {h_v}" style="width: 7%;">V</th>'
+                f'<th class="center-header {h_s}" style="width: 7%;">S</th>'
+                f"</tr></thead><tbody>{html_rows}</tbody></table></div>"
+            )
+
+        t1_html = render_tabla_cafe(col1_cafe)
+        t2_html = render_tabla_cafe(col2_cafe)
+
+        st.markdown(
+            f'<div class="tv-grid">{t1_html}{t2_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ---------------------------------------------------------
+    # TAB 2: CRONOGRAMA FIJO
+    # ---------------------------------------------------------
+    with tab_cronograma:
+        st.subheader("📅 Cronograma Semanal Fijo de Café")
+        st.caption("Horarios exactos asignados al motorizado **Juan (JU)**")
+
+        dias_semana = [
+            ("Lunes", "lunes", "h_lunes"),
+            ("Martes", "martes", "h_martes"),
+            ("Miércoles", "miercoles", "h_miercoles"),
+            ("Jueves", "jueves", "h_jueves"),
+            ("Viernes", "viernes", "h_viernes"),
+            ("Sábado", "sabado", "h_sabado"),
+        ]
+
+        cols_dias = st.columns(6)
+
+        for idx, (nombre_dia, col_flag, col_hora) in enumerate(dias_semana):
+            with cols_dias[idx]:
+                st.markdown(f"### {nombre_dia}")
+                puntos_dia = df_cafe[df_cafe[col_flag] == 1]
+
+                if puntos_dia.empty:
+                    st.info("Sin visitas")
+                else:
+                    for _, p in puntos_dia.iterrows():
+                        llave_tag = (
+                            f"`🔑 {p['llave']}`" if p["llave"] != "N/A" else ""
+                        )
+                        st.markdown(
+                            f"⏰ **{p[col_hora]}**\n\n**{p['nombre']}**\n{llave_tag}"
+                        )
+                        st.divider()
+
+    # ---------------------------------------------------------
+    # TAB 3: DIRECCIONES Y PUNTOS
+    # ---------------------------------------------------------
+    with tab_direcciones:
+        st.subheader("📍 Directorio Ubicaciones y Direcciones de Café")
+
+        busqueda_dir = st.text_input(
+            "🔍 Buscar por punto o dirección:",
+            placeholder="Ej: Cashea, Clínica, Unión Radio...",
+        )
+
+        df_dir_display = df_cafe[["nombre", "direccion", "llave"]].copy()
+
+        if busqueda_dir:
+            df_dir_display = df_dir_display[
+                df_dir_display["nombre"].str.contains(
+                    busqueda_dir, case=False, na=False
+                )
+                | df_dir_display["direccion"].str.contains(
+                    busqueda_dir, case=False, na=False
+                )
+            ]
+
+        st.dataframe(
+            df_dir_display.rename(
+                columns={
+                    "nombre": "Punto de Café",
+                    "direccion": "Dirección Exacta",
+                    "llave": "Llave de Acceso",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 elif modo == "⚡ Control de Ruta Hoy":
     st.title("⚡ Control de Avance de Ruta (Hoy)")
