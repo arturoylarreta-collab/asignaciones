@@ -587,7 +587,7 @@ elif modo == "☕ Máquinas de Café":
             "estado": "PENDIENTE",
         },
         {
-            "nombre": "Cashea P9",
+            "nombre": "Cashea P17",
             "direccion": "Torre HP, Piso 9, Chacao",
             "llave": "01",
             "horarios": {
@@ -713,8 +713,8 @@ elif modo == "☕ Máquinas de Café":
             "estado": "PENDIENTE",
         },
         {
-            "nombre": "Woconect",
-            "direccion": "Sede Woconect",
+            "nombre": "Weconnect",
+            "direccion": "Sede Weconnect",
             "llave": "N/A",
             "horarios": {
                 "lunes": "",
