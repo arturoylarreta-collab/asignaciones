@@ -25,6 +25,8 @@ init_local_db()
 # ---------------------------------------------------------
 @st.cache_data(ttl=300)
 def obtener_estatus_epay_cached(phpsessid):
+    if not phpsessid or phpsessid == "tu_session_id_aqui":
+        return {}
     return extraer_estatus_epay(phpsessid)
 
 
@@ -108,68 +110,69 @@ LLAVES_MUESTRA = {
     "UNION RADIO": "02",
 }
 
+# Nombre, Motorizado, L, M, X, J, V, S, Obs, Código_ePay
 LISTA_REAL_MAQUINAS = [
-    ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, ""),
-    ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, ""),
-    ("Unimet EM", "Eduard", 1, 0, 0, 0, 1, 0, ""),
-    ("UCV ING", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-    ("UCV COMP", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-    ("UCAB CONVERT", "Freduard", 0, 0, 1, 1, 0, 0, ""),
-    ("UCAB LAB", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-    ("UCAB P1", "Freduard", 1, 0, 0, 0, 0, 0, ""),
-    ("UCAB MEZ", "Freduard", 0, 1, 0, 0, 0, 0, ""),
-    ("UCAB M3", "Freduard", 0, 0, 1, 0, 0, 0, ""),
-    ("USM", "Alejandro", 1, 0, 1, 0, 1, 0, ""),
-    ("MONTAÑA", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
-    ("EURO S1", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-    ("EURO S2", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-    ("TAMACO", "Eduard", 0, 1, 0, 0, 0, 0, ""),
-    ("TAMACA", "Eduard", 0, 1, 0, 0, 0, 0, ""),
-    ("HUMBOLDT", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
-    ("GOLD DATA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
-    ("PAGO DIRECTO", "Gustavo", 1, 0, 1, 0, 1, 0, ""),
-    ("CUBITT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-    ("KURIOS", "Eduard", 0, 0, 0, 0, 1, 0, ""),
-    ("CASHEA P9", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-    ("CASHEA P18", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-    ("DICAM", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
-    ("FISA", "Gustavo", 0, 0, 1, 0, 0, 0, ""),
-    ("DOMESA", "Eduard", 1, 1, 1, 1, 1, 0, ""),
-    ("TU GRUERO", "Alejandro", 0, 0, 0, 1, 0, 0, ""),
-    ("UNION RADIO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-    ("FORUM P7", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-    ("FORUM P15", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-    ("BANGENTE", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-    ("PROVINCIAL", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
-    ("TRANRED", "Eduard", 0, 0, 1, 0, 0, 0, ""),
-    ("ROBIN", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-    ("CALLCENTER DRCC", "Gustavo", 1, 0, 0, 0, 0, 0, ""),
-    ("DUNCAN", "Eduard", 0, 0, 0, 1, 0, 0, ""),
-    ("ANDROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, ""),
-    ("PEGASO", "Alejandro", 0, 1, 0, 0, 0, 0, ""),
-    ("TIO AMMI 1", "Freduard", 1, 0, 1, 0, 0, 0, ""),
-    ("TIO AMMI 2", "Freduard", 0, 1, 0, 1, 0, 0, ""),
-    ("RS1 RECEP", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-    ("RS2 COMED", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-    ("WECONNECT", "Eduard", 0, 0, 1, 0, 1, 0, ""),
-    ("CEMENTERIO", "Alejandro", 1, 0, 0, 0, 0, 0, ""),
-    ("HEBRAICA", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-    ("POLICLINICA P3", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-    ("POLICLINICA P4", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
-    ("FLORESTA EM", "Eduard", 1, 0, 0, 1, 0, 0, ""),
-    ("FLORESTA P3", "Eduard", 0, 1, 0, 0, 1, 0, ""),
-    ("AVILA ADULT", "Alejandro", 1, 0, 1, 0, 0, 0, ""),
-    ("AVILA PEDT", "Alejandro", 0, 1, 0, 1, 0, 0, ""),
-    ("SANATRIX", "Freduard", 1, 0, 1, 0, 1, 0, ""),
-    ("VENE CHACAO", "Gustavo", 1, 0, 0, 1, 0, 0, ""),
-    ("VENE ALTAMIRA", "Gustavo", 0, 1, 0, 0, 1, 0, ""),
-    ("VENE CANDELARIA", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-    ("FLORIDA", "Eduard", 0, 0, 1, 0, 1, 0, ""),
-    ("CCS S1", "Freduard", 1, 0, 0, 1, 0, 0, ""),
-    ("CCS S2", "Freduard", 0, 1, 0, 0, 1, 0, ""),
-    ("FENIX", "Alejandro", 0, 0, 1, 0, 1, 0, ""),
-    ("OFICENTRO 1", "Gustavo", 1, 0, 1, 0, 0, 0, ""),
-    ("OFICENTRO 2", "Gustavo", 0, 1, 0, 1, 0, 0, ""),
+    ("Unimet PB", "Eduard", 1, 0, 1, 0, 0, 0, "", "V01-UNIMETPB"),
+    ("Unimet LAB", "Eduard", 0, 1, 0, 1, 0, 0, "", "V01-UNIMETLAB"),
+    ("Unimet EM", "Eduard", 1, 0, 0, 0, 1, 0, "", "V01-UNIMETEM"),
+    ("UCV ING", "Alejandro", 1, 0, 1, 0, 0, 0, "", "V25-UCVING"),
+    ("UCV COMP", "Alejandro", 0, 1, 0, 1, 0, 0, "", "V25-UCVCOMP"),
+    ("UCAB CONVERT", "Freduard", 0, 0, 1, 1, 0, 0, "", "V03-UCABCONV"),
+    ("UCAB LAB", "Freduard", 0, 1, 0, 0, 1, 0, "", "V01-UCLABS"),
+    ("UCAB P1", "Freduard", 1, 0, 0, 0, 0, 0, "", "V03-UCAP1"),
+    ("UCAB MEZ", "Freduard", 0, 1, 0, 0, 0, 0, "", "V03-UCABMEZ"),
+    ("UCAB M3", "Freduard", 0, 0, 1, 0, 0, 0, "", "V03-UCABM3"),
+    ("USM", "Alejandro", 1, 0, 1, 0, 1, 0, "", "V05-USM"),
+    ("MONTAÑA", "Alejandro", 0, 0, 0, 1, 0, 0, "", "V05-MONTANA"),
+    ("EURO S1", "Gustavo", 1, 0, 0, 1, 0, 0, "", "V10-EUROS1"),
+    ("EURO S2", "Gustavo", 0, 1, 0, 0, 1, 0, "", "V10-EUROS2"),
+    ("TAMACO", "Eduard", 0, 1, 0, 0, 0, 0, "", "V12-TAMACO"),
+    ("TAMACA", "Eduard", 0, 1, 0, 0, 0, 0, "", "V12-TAMACA"),
+    ("HUMBOLDT", "Alejandro", 1, 0, 0, 0, 0, 0, "", "V08-HUMBOLDT"),
+    ("GOLD DATA", "Gustavo", 0, 0, 1, 0, 0, 0, "", "V09-GOLDDATA"),
+    ("PAGO DIRECTO", "Gustavo", 1, 0, 1, 0, 1, 0, "", "V11-PAGODIR"),
+    ("CUBITT", "Alejandro", 0, 1, 0, 1, 0, 0, "", "V14-CUBITT"),
+    ("KURIOS", "Eduard", 0, 0, 0, 0, 1, 0, "", "V15-KURIOS"),
+    ("CASHEA P9", "Freduard", 1, 0, 1, 0, 1, 0, "", "V07-CASH09"),
+    ("CASHEA P18", "Freduard", 1, 0, 1, 0, 1, 0, "", "V07-CASH18"),
+    ("DICAM", "Alejandro", 0, 1, 0, 0, 0, 0, "", "V16-DICAM"),
+    ("FISA", "Gustavo", 0, 0, 1, 0, 0, 0, "", "V17-FISA"),
+    ("DOMESA", "Eduard", 1, 1, 1, 1, 1, 0, "", "V18-DOMESA"),
+    ("TU GRUERO", "Alejandro", 0, 0, 0, 1, 0, 0, "", "V19-TUGRUERO"),
+    ("UNION RADIO", "Gustavo", 1, 0, 0, 1, 0, 0, "", "V20-UNIONRAD"),
+    ("FORUM P7", "Freduard", 0, 1, 0, 0, 1, 0, "", "V21-FORUMP7"),
+    ("FORUM P15", "Freduard", 0, 1, 0, 0, 1, 0, "", "V21-FORUMP15"),
+    ("BANGENTE", "Alejandro", 1, 0, 1, 0, 0, 0, "", "V22-BANGENTE"),
+    ("PROVINCIAL", "Gustavo", 1, 0, 0, 0, 0, 0, "", "V23-PROV"),
+    ("TRANRED", "Eduard", 0, 0, 1, 0, 0, 0, "", "V24-TRANRED"),
+    ("ROBIN", "Alejandro", 1, 0, 1, 0, 0, 0, "", "V26-ROBIN"),
+    ("CALLCENTER DRCC", "Gustavo", 1, 0, 0, 0, 0, 0, "", "V27-DRCC"),
+    ("DUNCAN", "Eduard", 0, 0, 0, 1, 0, 0, "", "V28-DUNCAN"),
+    ("ANDROMEDA", "Alejandro", 1, 0, 0, 0, 1, 0, "", "V29-ANDROMEDA"),
+    ("PEGASO", "Alejandro", 0, 1, 0, 0, 0, 0, "", "V30-PEGASO"),
+    ("TIO AMMI 1", "Freduard", 1, 0, 1, 0, 0, 0, "", "V31-TIOAMMI1"),
+    ("TIO AMMI 2", "Freduard", 0, 1, 0, 1, 0, 0, "", "V31-TIOAMMI2"),
+    ("RS1 RECEP", "Gustavo", 1, 0, 0, 1, 0, 0, "", "V32-RS1RECEP"),
+    ("RS2 COMED", "Gustavo", 0, 1, 0, 0, 1, 0, "", "V32-RS2COMED"),
+    ("WECONNECT", "Eduard", 0, 0, 1, 0, 1, 0, "", "V33-WECONNECT"),
+    ("CEMENTERIO", "Alejandro", 1, 0, 0, 0, 0, 0, "", "V34-CEMENTERIO"),
+    ("HEBRAICA", "Freduard", 1, 0, 1, 0, 1, 0, "", "V35-HEBRAICA"),
+    ("POLICLINICA P3", "Gustavo", 1, 0, 1, 0, 0, 0, "", "V36-POLIP3"),
+    ("POLICLINICA P4", "Gustavo", 0, 1, 0, 1, 0, 0, "", "V36-POLIP4"),
+    ("FLORESTA EM", "Eduard", 1, 0, 0, 1, 0, 0, "", "V37-FLORESTEM"),
+    ("FLORESTA P3", "Eduard", 0, 1, 0, 0, 1, 0, "", "V37-FLORP3"),
+    ("AVILA ADULT", "Alejandro", 1, 0, 1, 0, 0, 0, "", "V38-AVILAAD"),
+    ("AVILA PEDT", "Alejandro", 0, 1, 0, 1, 0, 0, "", "V38-AVILAPED"),
+    ("SANATRIX", "Freduard", 1, 0, 1, 0, 1, 0, "", "V39-SANATRIX"),
+    ("VENE CHACAO", "Gustavo", 1, 0, 0, 1, 0, 0, "", "V40-VENECHAC"),
+    ("VENE ALTAMIRA", "Gustavo", 0, 1, 0, 0, 1, 0, "", "V40-VENEALT"),
+    ("VENE CANDELARIA", "Gustavo", 1, 0, 1, 0, 0, 0, "", "V40-VENECAND"),
+    ("FLORIDA", "Eduard", 0, 0, 1, 0, 1, 0, "", "V41-FLORIDA"),
+    ("CCS S1", "Freduard", 1, 0, 0, 1, 0, 0, "", "V42-CCSS1"),
+    ("CCS S2", "Freduard", 0, 1, 0, 0, 1, 0, "", "V42-CCSS2"),
+    ("FENIX", "Alejandro", 0, 0, 1, 0, 1, 0, "", "V43-FENIX"),
+    ("OFICENTRO 1", "Gustavo", 1, 0, 1, 0, 0, 0, "", "V44-OFIC1"),
+    ("OFICENTRO 2", "Gustavo", 0, 1, 0, 1, 0, 0, "", "V44-OFIC2"),
 ]
 
 
@@ -197,6 +200,7 @@ def init_supabase_db(force_reset=False):
                 "viernes": m[6],
                 "sabado": m[7],
                 "observaciones": m[8],
+                "codigo_epay": m[9] if len(m) > 9 else "",
                 "estado": "PENDIENTE",
                 "fecha_estado": hoy_str,
             }
@@ -226,6 +230,9 @@ def cargar_maquinas():
         else:
             df["llave"] = df["llave"].fillna("N/A").replace("", "N/A")
 
+        if "codigo_epay" not in df.columns:
+            df["codigo_epay"] = ""
+
         dias_cols = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
         for c in dias_cols:
             if c in df.columns:
@@ -243,7 +250,16 @@ def cambiar_estado_maquina(m_id, nuevo_estado):
 
 
 def agregar_maquina(
-    nombre, motorizado, llave, lunes, martes, miercoles, jueves, viernes, sabado
+    nombre,
+    motorizado,
+    llave,
+    lunes,
+    martes,
+    miercoles,
+    jueves,
+    viernes,
+    sabado,
+    codigo_epay="",
 ):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
     payload = {
@@ -257,6 +273,7 @@ def agregar_maquina(
         "viernes": int(viernes),
         "sabado": int(sabado),
         "observaciones": "",
+        "codigo_epay": codigo_epay.strip(),
         "estado": "PENDIENTE",
         "fecha_estado": hoy_str,
     }
@@ -274,6 +291,7 @@ def actualizar_maquina(
     jueves,
     viernes,
     sabado,
+    codigo_epay="",
 ):
     payload = {
         "nombre": nombre,
@@ -285,6 +303,7 @@ def actualizar_maquina(
         "jueves": int(jueves),
         "viernes": int(viernes),
         "sabado": int(sabado),
+        "codigo_epay": codigo_epay.strip(),
     }
     supabase.table("maquinas").update(payload).eq("id", m_id).execute()
 
@@ -294,7 +313,7 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CORREGIDOS
+# ESTILOS CSS
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -343,20 +362,6 @@ st.markdown(
         height: 22px !important;
     }
 
-    [data-testid="stSidebarCollapsedControl"]:hover,
-    [data-testid="stSidebarCollapseButton"]:hover,
-    button[aria-label="Open sidebar"]:hover {
-        background-color: #38bdf8 !important;
-        border-color: #ffffff !important;
-    }
-
-    [data-testid="stSidebarCollapsedControl"]:hover svg,
-    [data-testid="stSidebarCollapseButton"]:hover svg,
-    button[aria-label="Open sidebar"]:hover svg {
-        fill: #0b1329 !important;
-        color: #0b1329 !important;
-    }
-
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
@@ -399,9 +404,6 @@ st.markdown(
         display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 800; 
         font-size: clamp(0.72rem, 0.8vw, 0.88rem); text-align: center; margin-left: 4px; 
     }
-    .status-PENDIENTE { background-color: #334155; color: #cbd5e1; }
-    .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
-    .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
 
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
@@ -441,7 +443,7 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# RENDERING DE TABLERO
+# RENDERING DE TABLERO PRINCIPAL CON ESTADO EPAY INTEGRADO
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical(estatus_epay=None):
@@ -498,6 +500,14 @@ def renderizar_tablero_vertical(estatus_epay=None):
             badge_moto = get_moto_badge(m["motorizado"])
             badge_estado = get_status_badge(m["estado"])
             badge_llave = get_key_badge(m.get("llave", "N/A"))
+
+            # Búsqueda de estado en ePay por nombre o por código ePay
+            code_epay = m.get("codigo_epay", "")
+            info_epay = estatus_epay.get(m["nombre"]) or estatus_epay.get(
+                code_epay, {}
+            )
+            epay_badge = info_epay.get("color_badge", "⚪")
+
             c_l = get_cell(m["lunes"])
             c_m = get_cell(m["martes"])
             c_x = get_cell(m["miercoles"])
@@ -509,7 +519,7 @@ def renderizar_tablero_vertical(estatus_epay=None):
 
             rows_list.append(
                 f'<tr class="{row_class}">'
-                f'<td class="location-name">{m["nombre"]} {badge_llave}'
+                f'<td class="location-name">{epay_badge} {m["nombre"]} {badge_llave}'
                 f' {badge_estado}</td>'
                 f'<td style="text-align: center;">{badge_moto}</td>'
                 f'<td style="text-align: center;">{c_l}</td>'
@@ -572,7 +582,7 @@ elif modo == "📺 Tablero Snacky":
     phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
     estatus_epay = obtener_estatus_epay_cached(phpsessid)
 
-    st.info("🟢 = Máquina Activa en ePay | 🔴 = Máquina Inactiva / Offline")
+    st.info("🟢 = Máquina Activa en ePay | 🔴 = Máquina Inactiva / Offline | ⚪ = Sin Datos / No detectada")
 
     maquinas_snacky = [
         {"codigo_epay": "V07-CASH09", "nombre": "Cashea Piso 9", "llave": "01"},
@@ -1052,6 +1062,10 @@ elif modo == "⚙️ Panel de Gestión":
                     value="N/A",
                     placeholder="Ej: 01, 02, Maestra (M), 01/02...",
                 )
+                codigo_epay_nuevo = st.text_input(
+                    "Código Telemetría ePay (Opcional):",
+                    placeholder="Ej: V07-CASH09",
+                )
 
                 st.write("**Días de Recarga:**")
                 c_l, c_m, c_x, c_j, c_v, c_s = st.columns(6)
@@ -1075,6 +1089,7 @@ elif modo == "⚙️ Panel de Gestión":
                         j_val,
                         v_val,
                         s_val,
+                        codigo_epay_nuevo,
                     )
                     st.success("Ubicación agregada en Supabase.")
                     st.rerun()
@@ -1113,6 +1128,11 @@ elif modo == "⚙️ Panel de Gestión":
                             "Tipo / N° de Llave:",
                             value=row["llave"],
                             key=f"llave_{row['id']}",
+                        )
+                        e_codigo_epay = st.text_input(
+                            "Código ePay:",
+                            value=row.get("codigo_epay", ""),
+                            key=f"epay_{row['id']}",
                         )
 
                         idx_moto = (
@@ -1161,6 +1181,7 @@ elif modo == "⚙️ Panel de Gestión":
                                 e_j,
                                 e_v,
                                 e_s,
+                                e_codigo_epay,
                             )
                             st.success("¡Máquina actualizada!")
                             st.rerun()
