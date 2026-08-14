@@ -3,6 +3,19 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from supabase import create_client, Client
+from database import guardar_visita, init_db, obtener_visitas_df
+from epay_scraper import extraer_estatus_epay
+
+# Configuración Inicial
+st.set_page_config(page_title="Vendu - Control de Operaciones", layout="wide")
+init_db()  # Asegura que la BD exista
+
+# ---------------------------------------------------------
+# CACHÉ DE EPAY
+# ---------------------------------------------------------
+@st.cache_data(ttl=300)
+def obtener_estatus_epay_cached(phpsessid):
+    return extraer_estatus_epay(phpsessid)
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA (PANTALLA TV 43")
@@ -441,7 +454,10 @@ st.markdown(
 # RENDERING DE TABLERO (TV 43" - DIRECTO A TABLA)
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
-def renderizar_tablero_vertical():
+def renderizar_tablero_vertical(estatus_epay=None):
+    if estatus_epay is None:
+        estatus_epay = {}
+        
     dt_now = datetime.now()
     dia_num = dt_now.weekday()
 
@@ -544,11 +560,43 @@ def renderizar_tablero_vertical():
 st.sidebar.title("🎛️ NAVEGACIÓN")
 modo = st.sidebar.radio(
     "Seleccionar Vista:",
-    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión", "☕ Máquinas de Café"],
+    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión", "☕ Máquinas de Café", "🛵 App Motorizados", "📊 Dashboard Semanal"],
 )
 
-if modo == "📱 Tablero TV (En Vivo)":
-    renderizar_tablero_vertical()
+if modo == "📺 Tablero TV (En Vivo)":
+    # 1. Obtener la telemetría de ePay en tiempo real
+    phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
+    estatus_epay = obtener_estatus_epay_cached(phpsessid)
+
+    # 2. Renderizar el tablero pasándole los datos de ePay
+    renderizar_tablero_vertical(estatus_epay)
+
+elif modo == "📺 Tablero Snacky":
+    st.title("📺 Tablero Logístico Snacky")
+
+    # Obtenemos Cookie de sesión
+    phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
+    estatus_epay = obtener_estatus_epay_cached(phpsessid)
+
+    st.info("🟢 = Máquina Activa en ePay | 🔴 = Máquina Inactiva / Offline")
+
+    # Lista de máquinas de prueba
+    maquinas_snacky = [
+        {"codigo_epay": "V07-CASH09", "nombre": "Cashea Piso 9", "llave": "01"},
+        {"codigo_epay": "V01-UCLABS", "nombre": "UCAB Laboratorios", "llave": "02"},
+        {"codigo_epay": "V03-UCAP1", "nombre": "UCAB Cinc. Piso 1", "llave": "03"},
+        {"codigo_epay": "V25-UCV", "nombre": "UCV Central", "llave": "04"},
+    ]
+
+    for m in maquinas_snacky:
+        code = m["codigo_epay"]
+        info = estatus_epay.get(code, {})
+        badge = info.get("color_badge", "⚪")
+        estado_txt = info.get("estado", "SIN DATOS")
+
+        st.markdown(f"### {badge} **{m['nombre']}** (`{code}`)")
+        st.caption(f"Estado Telemetría: **{estado_txt}** | Llave: **{m['llave']}**")
+        st.divider()
 
 elif modo == "☕ Máquinas de Café":
     st.title("☕ Gestión de Máquinas de Café")
