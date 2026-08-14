@@ -1,0 +1,7 @@
+dependencies:
+  flutter:
+    sdk: flutter
+  geolocator: ^10.1.0
+  flutter_background_service: ^5.0.5
+  web_socket_channel: ^3.0.1
+  flutter_local_notifications: ^17.2.1
