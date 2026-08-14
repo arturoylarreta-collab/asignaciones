@@ -578,6 +578,9 @@ elif modo == "📺 Tablero Snacky":
     phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
     estatus_epay = obtener_estatus_epay_cached(phpsessid)
 
+else:
+    st.warning("⚠️ No se encontró la vista seleccionada. Por favor selecciona una opción en el menú lateral.")
+
     st.info("🟢 = Máquina Activa en ePay | 🔴 = Máquina Inactiva / Offline")
 
     # Lista de máquinas de prueba
