@@ -3,22 +3,11 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from supabase import create_client, Client
-from database import guardar_visita, init_db, obtener_visitas_df
+from database import guardar_visita, init_db as init_local_db, obtener_visitas_df
 from epay_scraper import extraer_estatus_epay
 
-# Configuración Inicial
-st.set_page_config(page_title="Vendu - Control de Operaciones", layout="wide")
-init_db()  # Asegura que la BD exista
-
 # ---------------------------------------------------------
-# CACHÉ DE EPAY
-# ---------------------------------------------------------
-@st.cache_data(ttl=300)
-def obtener_estatus_epay_cached(phpsessid):
-    return extraer_estatus_epay(phpsessid)
-
-# ---------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (PANTALLA TV 43")
+# CONFIGURACIÓN DE PÁGINA (ÚNICA LLAMADA - PANTALLA TV 43")
 # ---------------------------------------------------------
 st.set_page_config(
     page_title='Tablero Logístico TV 43" - Control en Tiempo Real',
@@ -26,6 +15,17 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Inicializar Base de Datos Local
+init_local_db()
+
+
+# ---------------------------------------------------------
+# CACHÉ DE EPAY
+# ---------------------------------------------------------
+@st.cache_data(ttl=300)
+def obtener_estatus_epay_cached(phpsessid):
+    return extraer_estatus_epay(phpsessid)
 
 
 # ---------------------------------------------------------
@@ -176,7 +176,7 @@ LISTA_REAL_MAQUINAS = [
 # ---------------------------------------------------------
 # FUNCIONES DE BASE DE DATOS (SUPABASE)
 # ---------------------------------------------------------
-def init_db(force_reset=False):
+def init_supabase_db(force_reset=False):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
 
     res = supabase.table("maquinas").select("id", count="exact").execute()
@@ -206,7 +206,7 @@ def init_db(force_reset=False):
         supabase.table("maquinas").insert(payload).execute()
 
 
-init_db()
+init_supabase_db()
 
 
 def cargar_maquinas():
@@ -294,26 +294,23 @@ def eliminar_maquina(m_id):
 
 
 # ---------------------------------------------------------
-# ESTILOS CSS CORREGIDOS (COMPATIBLE CON STREAMLIT CLOUD)
+# ESTILOS CSS CORREGIDOS
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* 1. Desactivar captura de eventos en la barra superior pero mantener interactividad en hijos */
     header[data-testid="stHeader"] {
         background: transparent !important;
         z-index: 9999 !important;
         pointer-events: none !important;
     }
 
-    /* Ocultar elementos decorativos secundarios */
     [data-testid="stDecoration"], 
     [data-testid="stStatusWidget"],
     #MainMenu, footer { 
         display: none !important; 
     }
 
-    /* 2. Forzar visibilidad y clickeabilidad del botón flotante del Menú Sidebar */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarCollapseButton"],
     button[aria-label="Open sidebar"],
@@ -336,7 +333,6 @@ st.markdown(
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* Estilo del icono SVG dentro del botón del menú */
     [data-testid="stSidebarCollapsedControl"] svg,
     [data-testid="stSidebarCollapseButton"] svg,
     button[aria-label="Open sidebar"] svg,
@@ -347,7 +343,6 @@ st.markdown(
         height: 22px !important;
     }
 
-    /* Efecto al pasar el cursor sobre el botón desplegable */
     [data-testid="stSidebarCollapsedControl"]:hover,
     [data-testid="stSidebarCollapseButton"]:hover,
     button[aria-label="Open sidebar"]:hover {
@@ -362,11 +357,9 @@ st.markdown(
         color: #0b1329 !important;
     }
 
-    /* Ocultar scrollbars por estética de TV */
     ::-webkit-scrollbar { display: none !important; width: 0px !important; }
     * { scrollbar-width: none !important; }
 
-    /* Estilos globales para pantalla oscura en TV 43" */
     html, body, .stApp { 
         background-color: #0b1329 !important; 
         color: #f8fafc !important; 
@@ -382,7 +375,6 @@ st.markdown(
         max-width: 100% !important; 
     }
 
-    /* Badges */
     .moto-badge { 
         display: inline-block; 
         padding: 3px 8px; 
@@ -411,10 +403,8 @@ st.markdown(
     .status-EN_RUTA { background-color: #854d0e; color: #fef08a; }
     .status-COMPLETADO { background-color: #065f46; color: #a7f3d0; }
 
-    /* Resaltado Día Actual */
     .today-col-header { background-color: #1e3a8a !important; color: #38bdf8 !important; border-bottom: 2px solid #38bdf8 !important; }
 
-    /* Rejilla y Tablas */
     .tv-grid { display: flex; flex-direction: row; gap: 10px; width: 100%; }
     .tv-column { flex: 1; background-color: #111c30; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
     .tv-table { width: 100%; border-collapse: collapse; font-family: system-ui, -apple-system, sans-serif; }
@@ -451,13 +441,13 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# RENDERING DE TABLERO (TV 43" - DIRECTO A TABLA)
+# RENDERING DE TABLERO
 # ---------------------------------------------------------
 @st.fragment(run_every=10)
 def renderizar_tablero_vertical(estatus_epay=None):
     if estatus_epay is None:
         estatus_epay = {}
-        
+
     dt_now = datetime.now()
     dia_num = dt_now.weekday()
 
@@ -560,30 +550,30 @@ def renderizar_tablero_vertical(estatus_epay=None):
 st.sidebar.title("🎛️ NAVEGACIÓN")
 modo = st.sidebar.radio(
     "Seleccionar Vista:",
-    ["📱 Tablero TV (En Vivo)", "⚡ Control de Ruta Hoy", "⚙️ Panel de Gestión", "☕ Máquinas de Café", "🛵 App Motorizados", "📊 Dashboard Semanal"],
+    [
+        "📱 Tablero TV (En Vivo)",
+        "📺 Tablero Snacky",
+        "⚡ Control de Ruta Hoy",
+        "⚙️ Panel de Gestión",
+        "☕ Máquinas de Café",
+        "🛵 App Motorizados",
+        "📊 Dashboard Semanal",
+    ],
 )
 
-if modo == "📺 Tablero TV (En Vivo)":
-    # 1. Obtener la telemetría de ePay en tiempo real
+if modo == "📱 Tablero TV (En Vivo)":
     phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
     estatus_epay = obtener_estatus_epay_cached(phpsessid)
-
-    # 2. Renderizar el tablero pasándole los datos de ePay
     renderizar_tablero_vertical(estatus_epay)
 
 elif modo == "📺 Tablero Snacky":
     st.title("📺 Tablero Logístico Snacky")
 
-    # Obtenemos Cookie de sesión
     phpsessid = st.secrets.get("EPAY_PHPSESSID", "tu_session_id_aqui")
     estatus_epay = obtener_estatus_epay_cached(phpsessid)
 
-else:
-    st.warning("⚠️ No se encontró la vista seleccionada. Por favor selecciona una opción en el menú lateral.")
-
     st.info("🟢 = Máquina Activa en ePay | 🔴 = Máquina Inactiva / Offline")
 
-    # Lista de máquinas de prueba
     maquinas_snacky = [
         {"codigo_epay": "V07-CASH09", "nombre": "Cashea Piso 9", "llave": "01"},
         {"codigo_epay": "V01-UCLABS", "nombre": "UCAB Laboratorios", "llave": "02"},
@@ -604,14 +594,10 @@ else:
 elif modo == "☕ Máquinas de Café":
     st.title("☕ Gestión de Máquinas de Café")
 
-    # ---------------------------------------------------------
-    # 1. CONFIGURACIÓN DEL MOTORIZADO ÚNICO (JUAN)
-    # ---------------------------------------------------------
     MOTORIZADO_CAFE = {
         "Juan": {"code": "JU", "bg": "#ec4899", "color": "#ffffff"}
     }
 
-    # Dict por defecto para fallback de estados si no existe ESTADOS_CONFIG global
     ESTADOS_DEFAULT = {
         "PENDIENTE": {"icon": "⏳", "label": "Pendiente"},
         "EN_RUTA": {"icon": "🛵", "label": "En Ruta"},
@@ -619,9 +605,6 @@ elif modo == "☕ Máquinas de Café":
     }
     config_estados = globals().get("ESTADOS_CONFIG", ESTADOS_DEFAULT)
 
-    # ---------------------------------------------------------
-    # 2. DATOS EXTRAÍDOS DEL CRONOGRAMA MANUSCRITO
-    # ---------------------------------------------------------
     DATOS_MAQUINAS_CAFE = [
         {
             "nombre": "Clínicas Caracas",
@@ -793,7 +776,6 @@ elif modo == "☕ Máquinas de Café":
         },
     ]
 
-    # Construcción de DataFrame para el dashboard
     rows_cafe = []
     for item in DATOS_MAQUINAS_CAFE:
         h = item["horarios"]
@@ -820,16 +802,10 @@ elif modo == "☕ Máquinas de Café":
 
     df_cafe = pd.DataFrame(rows_cafe)
 
-    # ---------------------------------------------------------
-    # 3. PESTAÑAS DEL APARTADO
-    # ---------------------------------------------------------
     tab_tablero, tab_cronograma, tab_direcciones = st.tabs(
         ["📺 Tablero TV (Juan)", "📅 Cronograma Fijo", "📍 Direcciones y Puntos"]
     )
 
-    # ---------------------------------------------------------
-    # TAB 1: TABLERO TV (MISMA ESTRUCTURA DE SNACKY)
-    # ---------------------------------------------------------
     with tab_tablero:
         dt_now = datetime.now()
         dia_num = dt_now.weekday()
@@ -912,9 +888,6 @@ elif modo == "☕ Máquinas de Café":
             unsafe_allow_html=True,
         )
 
-    # ---------------------------------------------------------
-    # TAB 2: CRONOGRAMA FIJO
-    # ---------------------------------------------------------
     with tab_cronograma:
         st.subheader("📅 Cronograma Semanal Fijo de Café")
         st.caption("Horarios exactos asignados al motorizado **Juan (JU)**")
@@ -947,9 +920,6 @@ elif modo == "☕ Máquinas de Café":
                         )
                         st.divider()
 
-    # ---------------------------------------------------------
-    # TAB 3: DIRECCIONES Y PUNTOS
-    # ---------------------------------------------------------
     with tab_direcciones:
         st.subheader("📍 Directorio Ubicaciones y Direcciones de Café")
 
@@ -1062,7 +1032,7 @@ elif modo == "⚙️ Panel de Gestión":
         st.success("🔓 Acceso concedido.")
 
         if st.sidebar.button("🔄 Recargar Ubicaciones Iniciales"):
-            init_db(force_reset=True)
+            init_supabase_db(force_reset=True)
             st.sidebar.success(
                 "¡Base de datos restablecida en Supabase con éxito!"
             )
@@ -1198,3 +1168,11 @@ elif modo == "⚙️ Panel de Gestión":
                         if b2.form_submit_button("🗑️ Eliminar"):
                             eliminar_maquina(row["id"])
                             st.rerun()
+
+elif modo == "🛵 App Motorizados":
+    st.title("🛵 App Motorizados")
+    st.info("Módulo en desarrollo para la asignación y seguimiento de repartidores.")
+
+elif modo == "📊 Dashboard Semanal":
+    st.title("📊 Dashboard Semanal")
+    st.info("Módulo en desarrollo para estadísticas globales y KPIs semanales.")
