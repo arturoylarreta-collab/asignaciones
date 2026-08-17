@@ -111,7 +111,8 @@ MOTORIZADOS_CONFIG = {
     "Freduard":    {"code": "FR", "bg": "#222222", "color": "#FFC300"},
     "Alejandro":   {"code": "AL", "bg": "#FFFFFF",  "color": "#000000"},
     "Gustavo":     {"code": "GU", "bg": "#555555", "color": "#FFFFFF"},
-    "arturoylarreta@gmail,com": {"code": "--", "bg": "#1a1a1a", "color": "#555555"},
+    "Sin Asignar": {"code": "--", "bg": "#1a1a1a", "color": "#555555"},
+    "arturoylarreta@gmail.com": {"code": "AR", "bg": "#007bff", "color": "#FFFFFF"},
 }
 
 MOTORIZADOS_DISPONIBLES = list(MOTORIZADOS_CONFIG.keys())
