@@ -272,12 +272,15 @@ def cambiar_estado_maquina(m_id, nuevo_estado):
 def agregar_maquina(nombre, motorizado, llave, lunes, martes, miercoles,
                     jueves, viernes, sabado, codigo_epay=""):
     hoy_str = datetime.now().strftime("%Y-%m-%d")
+    # FIX: mismo bug — None.strip() → (valor or "").strip()
+    llave       = (llave or "").strip()
+    codigo_epay = (codigo_epay or "").strip()
     payload = {
         "nombre": nombre, "motorizado": motorizado,
-        "llave": llave.strip() if llave.strip() else "N/A",
+        "llave": llave if llave else "N/A",
         "lunes": int(lunes), "martes": int(martes), "miercoles": int(miercoles),
         "jueves": int(jueves), "viernes": int(viernes), "sabado": int(sabado),
-        "observaciones": "", "codigo_epay": codigo_epay.strip(),
+        "observaciones": "", "codigo_epay": codigo_epay,
         "estado": "PENDIENTE", "fecha_estado": hoy_str,
     }
     supabase.table("maquinas").insert(payload).execute()
@@ -285,12 +288,15 @@ def agregar_maquina(nombre, motorizado, llave, lunes, martes, miercoles,
 
 def actualizar_maquina(m_id, nombre, motorizado, llave, lunes, martes,
                        miercoles, jueves, viernes, sabado, codigo_epay=""):
+    # FIX: codigo_epay y llave pueden llegar como None desde Streamlit → str() seguro
+    llave       = (llave or "").strip()
+    codigo_epay = (codigo_epay or "").strip()
     payload = {
         "nombre": nombre, "motorizado": motorizado,
-        "llave": llave.strip() if llave.strip() else "N/A",
+        "llave": llave if llave else "N/A",
         "lunes": int(lunes), "martes": int(martes), "miercoles": int(miercoles),
         "jueves": int(jueves), "viernes": int(viernes), "sabado": int(sabado),
-        "codigo_epay": codigo_epay.strip(),
+        "codigo_epay": codigo_epay,
     }
     supabase.table("maquinas").update(payload).eq("id", m_id).execute()
 
